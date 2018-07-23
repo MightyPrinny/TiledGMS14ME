@@ -1167,7 +1167,7 @@ void ObjectSelectionTool::updateMovingItems(const QPointF &pos,
         if(p.isValid())
             po.setY(p.toInt());
         QPointF newPixelPos ;
-        if(mMovingObjects.size()>1 || (mapDocument()->map()->orientation() != Map::Orthogonal))
+        if((mapDocument()->map()->orientation() != Map::Orthogonal))
             newPixelPos = object.oldScreenPosition + diff;
         else
         {
