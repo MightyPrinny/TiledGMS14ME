@@ -62,7 +62,6 @@ protected:
 
 private slots:
     void editTerrainProperties();
-
     void adjustScale();
 
 private:

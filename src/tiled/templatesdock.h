@@ -28,6 +28,7 @@
 #include <QHash>
 #include <QSharedPointer>
 #include <QTreeView>
+#include <QSortFilterProxyModel>
 
 class QPushButton;
 class QLabel;
@@ -102,6 +103,8 @@ private:
     ObjectTemplate *mObjectTemplate;
     PropertiesDock *mPropertiesDock;
     ToolManager *mToolManager;
+    QSortFilterProxyModel *mProxyModel;
+    QLineEdit *mFilterEdit;
 
     static QHash<ObjectTemplate*, QWeakPointer<MapDocument>> ourDummyDocuments;
 };
@@ -125,6 +128,7 @@ protected:
 
 public slots:
     void onCurrentChanged(const QModelIndex &index);
+    void updateNameFilter(const QString &text);
 
 private:
     void onTemplatesDirectoryChanged(const QString &rootPath);

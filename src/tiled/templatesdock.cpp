@@ -56,6 +56,7 @@ using namespace Tiled::Internal;
 // This references created dummy documents, to make sure they are shared if the
 // same template is open in the MapEditor and the TilesetEditor.
 QHash<ObjectTemplate*, QWeakPointer<MapDocument>> TemplatesDock::ourDummyDocuments;
+static QSharedPointer<ObjectTemplateModel> sharedTemplateModel();
 
 TemplatesDock::TemplatesDock(QWidget *parent)
     : QDockWidget(parent)
@@ -66,10 +67,15 @@ TemplatesDock::TemplatesDock(QWidget *parent)
     , mMapScene(new MapScene(this))
     , mMapView(new MapView(this, MapView::NoStaticContents))
     , mToolManager(new ToolManager(this))
+    , mFilterEdit(new QLineEdit(this))
 {
     setObjectName(QLatin1String("TemplatesDock"));
 
     QWidget *widget = new QWidget(this);
+    mFilterEdit->setClearButtonEnabled(true);
+    connect(mFilterEdit, &QLineEdit::textChanged,
+            mTemplatesView, &TemplatesView::updateNameFilter);
+
 
     // Prevent dropping a template into the editing view
     mMapView->setAcceptDrops(false);
@@ -491,6 +497,12 @@ void TemplatesView::setSelectedTemplate(const QString &path)
     if (index.isValid())
         setCurrentIndex(index);
 }
+
+ void TemplatesView::updateNameFilter(const QString &text)
+ {
+     std::string str= text.toStdString() + "*";
+     mModel->setNameFilters(QStringList(QLatin1String(str.c_str())));
+ }
 
 void TemplatesView::contextMenuEvent(QContextMenuEvent *event)
 {
