@@ -35,6 +35,7 @@
 #include "tile.h"
 #include "toolmanager.h"
 #include "utils.h"
+#include "preferences.h"
 
 #include <QApplication>
 #include <QKeyEvent>
@@ -344,11 +345,34 @@ void CreateObjectTool::finishNewMapObject()
  */
 void CreateObjectTool::mouseMovedWhileCreatingObject(const QPointF &pos, Qt::KeyboardModifiers modifiers)
 {
+
     MapRenderer *renderer = mapDocument()->renderer();
+    QPointF po(0,0);
+    Preferences *prefs = Preferences::instance();
+    QVariant p = mNewMapObjectItem->mapObject()->inheritedProperty(QLatin1String("offsetX"));
+    if(p.isValid())
+        po.setX(p.toInt());
+    p = mNewMapObjectItem->mapObject()->inheritedProperty(QLatin1String("offsetY"));
+    if(p.isValid())
+        po.setY(p.toInt());
+    QPointF newPixelPos ;
+    if((mapDocument()->map()->orientation() != Map::Orthogonal))
+    {
+        newPixelPos = renderer->screenToPixelCoords(pos);
+        SnapHelper(renderer,modifiers).snap(newPixelPos);
+    }
+    else
+    {
+        QPointF mousePos = pos;
+        if(mNewMapObjectItem->mapObject()->isTileObject())
+        {
+            po.setY(po.y()-mNewMapObjectItem->mapObject()->height());
+        }
+        newPixelPos = QPointF(floor(mousePos.x()/prefs->snapGrid().width()),floor(mousePos.y()/prefs->snapGrid().height()));
+        newPixelPos = QPointF(newPixelPos.x()*prefs->snapGrid().width(),newPixelPos.y()*prefs->snapGrid().height());
 
-    QPointF pixelCoords = renderer->screenToPixelCoords(pos);
-    SnapHelper(renderer, modifiers).snap(pixelCoords);
-
-    mNewMapObjectItem->mapObject()->setPosition(pixelCoords);
+    }
+    const QPointF newPos = renderer->screenToPixelCoords(newPixelPos);
+    mNewMapObjectItem->mapObject()->setPosition(newPos - po);
     mNewMapObjectItem->syncWithMapObject();
 }
