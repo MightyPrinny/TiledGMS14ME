@@ -1118,15 +1118,33 @@ void ObjectSelectionTool::startMoving(const QPointF &pos,
 
     mStart = pos;
     mAction = Moving;
-    mAlignPosition = mMovingObjects.first().oldPosition;
+
+    MovingObject mobject = mMovingObjects.first();
+    QPointF po(0,0);
+    /*
+    if(mobject.mapObject->isTileObject())
+    {
+        po.setY(po.y()-mobject.mapObject->height());
+    }
+    */
+
+
+    mAlignPosition = mobject.oldPosition + po;
     mOriginPos = mOriginIndicator->pos();
 
     for (const MovingObject &object : qAsConst(mMovingObjects)) {
+
+        QPointF po(0,0);
+        /*if(object.mapObject->isTileObject())
+        {
+            po.setY(po.y()-mobject.mapObject->height());
+        }*/
+
         const QPointF &pos = object.oldPosition;
-        if (pos.x() < mAlignPosition.x())
-            mAlignPosition.setX(pos.x());
-        if (pos.y() < mAlignPosition.y())
-            mAlignPosition.setY(pos.y());
+        if (pos.x() + po.x() < mAlignPosition.x())
+            mAlignPosition.setX(pos.x() + po.x());
+        if (pos.y() + po.y() < mAlignPosition.y())
+            mAlignPosition.setY(pos.y() + po.y());
     }
 
     updateHandleVisibility();
@@ -1137,12 +1155,34 @@ void ObjectSelectionTool::updateMovingItems(const QPointF &pos,
 {
     const MapRenderer *renderer = mapDocument()->renderer();
     const QPointF diff = snapToGrid(pos - mStart, modifiers);
+    Preferences *prefs = Preferences::instance();
 
     for (const MovingObject &object : qAsConst(mMovingObjects)) {
-        const QPointF newPixelPos = object.oldScreenPosition + diff;
-        const QPointF newPos = renderer->screenToPixelCoords(newPixelPos);
 
-        object.mapObject->setPosition(newPos);
+        QPointF po(0,0);
+        QVariant p = object.mapObject->inheritedProperty(QLatin1String("offsetX"));
+        if(p.isValid())
+            po.setX(p.toInt());
+        p = object.mapObject->inheritedProperty(QLatin1String("offsetY"));
+        if(p.isValid())
+            po.setY(p.toInt());
+        QPointF newPixelPos ;
+        if(mMovingObjects.size()>1 || (mapDocument()->map()->orientation() != Map::Orthogonal))
+            newPixelPos = object.oldScreenPosition + diff;
+        else
+        {
+            QPointF mousePos = object.oldPosition + (pos-mStart);
+            if(object.mapObject->isTileObject())
+            {
+                po.setY(po.y()-object.mapObject->height());
+                mousePos.setY(mousePos.y()-object.mapObject->height());
+            }
+            newPixelPos = QPointF(floor(mousePos.x()/prefs->snapGrid().width()),floor(mousePos.y()/prefs->snapGrid().height()));
+            newPixelPos = QPointF(newPixelPos.x()*prefs->snapGrid().width(),newPixelPos.y()*prefs->snapGrid().height());
+
+        }
+        const QPointF newPos = renderer->screenToPixelCoords(newPixelPos);
+        object.mapObject->setPosition(newPos - po);
     }
 
     mapDocument()->mapObjectModel()->emitObjectsChanged(changingObjects(), MapObjectModel::Position);

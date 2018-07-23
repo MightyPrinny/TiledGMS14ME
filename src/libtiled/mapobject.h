@@ -158,12 +158,7 @@ public:
      */
     void MapObject::setPosition(const QPointF &pos)
     {
-        qreal xo = optionalProperty(this,QLatin1String("offsetX"),qreal(0));
-        qreal yo = optionalProperty(this,QLatin1String("offsetY"),qreal(0));
-        if(isTileObject())
-            mPos = pos + QPointF(xo,yo);
-        else
-            mPos = pos - QPointF(xo,yo);
+        mPos=pos;
     }
 
     const QPointF MapObject::position() const
