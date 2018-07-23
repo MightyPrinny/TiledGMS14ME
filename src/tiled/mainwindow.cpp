@@ -92,7 +92,7 @@
 #include <QUndoGroup>
 #include <QUndoStack>
 #include <QUndoView>
-
+#include <iostream>>
 #ifdef Q_OS_WIN
 #include <QtPlatformHeaders\QWindowsWindowFunctions>
 #endif
@@ -956,7 +956,14 @@ void MainWindow::run()
     if(!lastExport.isEmpty())
     {
         gameProcess = new QProcess();
-        gameProcess->start(app, QStringList() << lastExport);
+        QDir dir = QDir(app);
+        dir.cdUp();
+        //QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+        gameProcess->setWorkingDirectory(dir.path());
+        std::cout << dir.path().toStdString();
+        gameProcess->setProgram(app);
+        gameProcess->setArguments(QStringList() << lastExport);
+        gameProcess->start();
         connect(gameProcess, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, &MainWindow::gameClosed);
 
     }
