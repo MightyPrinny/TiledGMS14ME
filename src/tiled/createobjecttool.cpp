@@ -347,6 +347,8 @@ void CreateObjectTool::mouseMovedWhileCreatingObject(const QPointF &pos, Qt::Key
 {
 
     MapRenderer *renderer = mapDocument()->renderer();
+    int xscale=1;
+    int yscale=1;
     QPointF po(0,0);
     Preferences *prefs = Preferences::instance();
     QVariant p = mNewMapObjectItem->mapObject()->inheritedProperty(QLatin1String("offsetX"));

@@ -438,6 +438,9 @@ bool GmxPlugin::write(const Map *map, const QString &fileName)
         QString depth = QString::number(optionalProperty(layer, QLatin1String("depth"),
                                                          layerCount + 1000000));
 
+        int xoff = layer->offset().x();
+        int yoff = layer->offset().y();
+
         switch (layer->layerType()) {
         case Layer::TileLayerType: {
             auto tileLayer = static_cast<const TileLayer*>(layer);
@@ -480,8 +483,8 @@ bool GmxPlugin::write(const Map *map, const QString &fileName)
                         }
 
                         stream.writeAttribute("bgName", bgName);
-                        stream.writeAttribute("x", QString::number(pixelX));
-                        stream.writeAttribute("y", QString::number(pixelY));
+                        stream.writeAttribute("x", QString::number(pixelX+xoff));
+                        stream.writeAttribute("y", QString::number(pixelY+yoff));
                         stream.writeAttribute("w", QString::number(tile->width()));
                         stream.writeAttribute("h", QString::number(tile->height()));
 

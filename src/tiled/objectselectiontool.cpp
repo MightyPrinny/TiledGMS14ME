@@ -1160,6 +1160,15 @@ void ObjectSelectionTool::updateMovingItems(const QPointF &pos,
     for (const MovingObject &object : qAsConst(mMovingObjects)) {
 
         QPointF po(0,0);
+        int xscale=1;
+        int yscale=1;
+        if(object.mapObject->isTileObject())
+        {
+            if(object.mapObject->cell().flippedHorizontally())
+                xscale=-1;
+            if(object.mapObject->cell().flippedVertically())
+                yscale=-1;
+        }
         QVariant p = object.mapObject->inheritedProperty(QLatin1String("offsetX"));
         if(p.isValid())
             po.setX(p.toInt());
@@ -1181,6 +1190,8 @@ void ObjectSelectionTool::updateMovingItems(const QPointF &pos,
             newPixelPos = QPointF(newPixelPos.x()*prefs->snapGrid().width(),newPixelPos.y()*prefs->snapGrid().height());
 
         }
+        po.setX(po.x()*xscale);
+        po.setY(po.y()*yscale);
         const QPointF newPos = renderer->screenToPixelCoords(newPixelPos);
         object.mapObject->setPosition(newPos - po);
     }

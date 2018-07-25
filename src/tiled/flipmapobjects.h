@@ -24,6 +24,7 @@
 
 #include <QList>
 #include <QUndoCommand>
+#include "changemapobject.h".h"
 
 namespace Tiled {
 namespace Internal {
@@ -33,12 +34,15 @@ class MapDocument;
 class FlipMapObjects : public QUndoCommand
 {
 public:
+    FlipMapObjects::FlipMapObjects();
     FlipMapObjects(MapDocument *mapDocument,
                    const QList<MapObject *> &mapObjects,
                    FlipDirection flipDirection);
 
     void undo() override { flip(); }
     void redo() override { flip(); }
+    QUndoCommand flipCellObjects(const QList<MapObject *> &mapObjects,
+                FlipDirection flipDirection);
 
 private:
     void flip();
