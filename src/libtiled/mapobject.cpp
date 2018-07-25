@@ -291,18 +291,34 @@ void MapObject::flip(FlipDirection direction, const QPointF &origin)
     QTransform flipTransform;
     flipTransform.translate(origin.x(), origin.y());
     qreal newRotation = 0;
+    bool hor=false;
+    bool ver=false;
     if (direction == FlipHorizontally) {
         newRotation = 180.0 - rotation();
         flipTransform.scale(-1, 1);
+        if(!mCell.isEmpty() && !mCell.flippedHorizontally())
+        {
+            hor=true;
+        }
     } else { //direction == FlipVertically
         flipTransform.scale(1, -1);
         newRotation = -rotation();
+        if(!mCell.isEmpty() && !mCell.flippedVertically())
+        {
+            ver=true;
+        }
     }
     flipTransform.translate(-origin.x(), -origin.y());
 
 
     if (!mCell.isEmpty())
-        flipTileObject(flipTransform);
+    {
+        newRotation=rotation();
+        flipTileObject(hor,ver);
+
+
+
+    }
     else if (!mPolygon.isEmpty())
         flipPolygonObject(flipTransform);
     else
@@ -427,6 +443,12 @@ void MapObject::flipTileObject(const QTransform &flipTransform)
     QPointF newPos = flipTransform.map(topLeftTilePoint);
 
     setPosition(newPos);
+}
+
+void MapObject::flipTileObject(bool hor, bool ver)
+{
+    mCell.setFlippedVertically(ver);
+    mCell.setFlippedHorizontally(hor);
 }
 
 } // namespace Tiled

@@ -17,9 +17,9 @@
  * You should have received a copy of the GNU General Public License along with
  * this program. If not, see <http://www.gnu.org/licenses/>.
  */
-
+#pragma once
 #include "objectselectiontool.h"
-
+#include <iostream>
 #include "changepolygon.h"
 #include "editpolygontool.h"
 #include "geometry.h"
@@ -1174,13 +1174,27 @@ void ObjectSelectionTool::updateMovingItems(const QPointF &pos,
             po.setX(p.toInt());
         p = object.mapObject->inheritedProperty(QLatin1String("offsetY"));
         if(p.isValid())
-            po.setY(p.toInt());
+            po.setY(p.toInt()*yscale);
+        if(object.mapObject->isTileObject())
+        {
+            if(xscale==-1)
+            {
+                xscale = abs(object.mapObject->cell().tile()->width() / object.mapObject->width());
+                po.setX(object.mapObject->width() - po.x()*xscale);
+            }
+            if(yscale==-1)
+            {
+                yscale = abs(object.mapObject->cell().tile()->height() / object.mapObject->height());
+                po.setY(object.mapObject->height() - po.y()*yscale);
+            }
+        }
+
         QPointF newPixelPos ;
         if((mapDocument()->map()->orientation() != Map::Orthogonal))
             newPixelPos = object.oldScreenPosition + diff;
         else
         {
-            QPointF mousePos = object.oldPosition + (pos-mStart);
+            QPointF mousePos = object.oldPosition + po + (pos-mStart); //+ center;
             if(object.mapObject->isTileObject())
             {
                 po.setY(po.y()-object.mapObject->height());
@@ -1190,8 +1204,7 @@ void ObjectSelectionTool::updateMovingItems(const QPointF &pos,
             newPixelPos = QPointF(newPixelPos.x()*prefs->snapGrid().width(),newPixelPos.y()*prefs->snapGrid().height());
 
         }
-        po.setX(po.x()*xscale);
-        po.setY(po.y()*yscale);
+
         const QPointF newPos = renderer->screenToPixelCoords(newPixelPos);
         object.mapObject->setPosition(newPos - po);
     }

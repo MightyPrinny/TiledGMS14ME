@@ -351,12 +351,32 @@ void CreateObjectTool::mouseMovedWhileCreatingObject(const QPointF &pos, Qt::Key
     int yscale=1;
     QPointF po(0,0);
     Preferences *prefs = Preferences::instance();
+    if(mNewMapObjectItem->mapObject()->isTileObject())
+    {
+        if(mNewMapObjectItem->mapObject()->cell().flippedHorizontally())
+            xscale=-1;
+        if(mNewMapObjectItem->mapObject()->cell().flippedVertically())
+            yscale=-1;
+    }
     QVariant p = mNewMapObjectItem->mapObject()->inheritedProperty(QLatin1String("offsetX"));
     if(p.isValid())
         po.setX(p.toInt());
     p = mNewMapObjectItem->mapObject()->inheritedProperty(QLatin1String("offsetY"));
     if(p.isValid())
-        po.setY(p.toInt());
+        po.setY(p.toInt()*yscale);
+    if(mNewMapObjectItem->mapObject()->isTileObject())
+    {
+        if(xscale==-1)
+        {
+            xscale = abs(mNewMapObjectItem->mapObject()->cell().tile()->width() / mNewMapObjectItem->mapObject()->width());
+            po.setX(mNewMapObjectItem->mapObject()->width() - po.x()*xscale);
+        }
+        if(yscale==-1)
+        {
+            yscale = abs(mNewMapObjectItem->mapObject()->cell().tile()->height() / mNewMapObjectItem->mapObject()->height());
+            po.setY(mNewMapObjectItem->mapObject()->height() - po.y()*yscale);
+        }
+    }
     QPointF newPixelPos ;
     if((mapDocument()->map()->orientation() != Map::Orthogonal))
     {
@@ -365,7 +385,7 @@ void CreateObjectTool::mouseMovedWhileCreatingObject(const QPointF &pos, Qt::Key
     }
     else
     {
-        QPointF mousePos = pos;
+        QPointF mousePos = pos + po;
         if(mNewMapObjectItem->mapObject()->isTileObject())
         {
             po.setY(po.y()-mNewMapObjectItem->mapObject()->height());

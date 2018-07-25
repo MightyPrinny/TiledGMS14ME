@@ -24,7 +24,7 @@
 
 #include <QList>
 #include <QUndoCommand>
-#include "changemapobject.h".h"
+#include "changemapobject.h"
 
 namespace Tiled {
 namespace Internal {

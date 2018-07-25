@@ -1057,6 +1057,7 @@ QUndoCommand *PropertyBrowser::applyMapObjectValueTo(PropertyId id, const QVaria
         mapObjectCell.cell = mapObject->cell();
         mapObjectCell.cell.setFlippedHorizontally(flippingFlags & 1);
         mapObjectCell.cell.setFlippedVertically(flippingFlags & 2);
+        printf(QString::number(flippingFlags).toStdString().c_str());
 
         command = new ChangeMapObjectCells(mMapDocument,
                                            QVector<MapObjectCell>() << mapObjectCell);

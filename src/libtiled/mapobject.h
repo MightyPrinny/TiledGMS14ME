@@ -247,6 +247,7 @@ private:
     void flipRectObject(const QTransform &flipTransform);
     void flipPolygonObject(const QTransform &flipTransform);
     void flipTileObject(const QTransform &flipTransform);
+    void flipTileObject(bool hor, bool ver);
 
     int mId;
     Shape mShape;
