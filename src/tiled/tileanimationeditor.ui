@@ -66,6 +66,20 @@
       </spacer>
      </item>
      <item>
+      <widget class="QPushButton" name="generate">
+       <property name="text">
+        <string>Generate from selection</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="clearAnimations">
+       <property name="text">
+        <string>Clear Animations</string>
+       </property>
+      </widget>
+     </item>
+     <item>
       <widget class="QComboBox" name="zoomComboBox"/>
      </item>
     </layout>

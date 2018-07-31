@@ -37,6 +37,7 @@
 #include "utils.h"
 #include "preferences.h"
 
+#include <QtMath>
 #include <QApplication>
 #include <QKeyEvent>
 #include <QPalette>
@@ -345,39 +346,45 @@ void CreateObjectTool::finishNewMapObject()
  */
 void CreateObjectTool::mouseMovedWhileCreatingObject(const QPointF &pos, Qt::KeyboardModifiers modifiers)
 {
-
+    bool useHalfGrid = modifiers == Qt::KeyboardModifier::ControlModifier;
     MapRenderer *renderer = mapDocument()->renderer();
+    Preferences *prefs = Preferences::instance();
+    qreal degs =  mNewMapObjectItem->mapObject()->rotation();
+    qreal degs2 = mNewMapObjectItem->mapObject()->rotation()-90;
+
+    qreal angle = qDegreesToRadians(degs);
+    qreal angle2 = qDegreesToRadians(degs2);
+
     int xscale=1;
     int yscale=1;
-    QPointF po(0,0);
-    Preferences *prefs = Preferences::instance();
+    QPointF po = QPointF();
     if(mNewMapObjectItem->mapObject()->isTileObject())
     {
         if(mNewMapObjectItem->mapObject()->cell().flippedHorizontally())
             xscale=-1;
         if(mNewMapObjectItem->mapObject()->cell().flippedVertically())
             yscale=-1;
+        xscale = xscale * abs(mNewMapObjectItem->mapObject()->width() / mNewMapObjectItem->mapObject()->cell().tile()->width()) ;
+        yscale = yscale * abs(mNewMapObjectItem->mapObject()->height()/mNewMapObjectItem->mapObject()->cell().tile()->height());
     }
     QVariant p = mNewMapObjectItem->mapObject()->inheritedProperty(QLatin1String("offsetX"));
     if(p.isValid())
-        po.setX(p.toInt());
+        po.setX(xscale*p.toInt());
     p = mNewMapObjectItem->mapObject()->inheritedProperty(QLatin1String("offsetY"));
     if(p.isValid())
         po.setY(p.toInt()*yscale);
     if(mNewMapObjectItem->mapObject()->isTileObject())
     {
-        if(xscale==-1)
+        if( (xscale/abs(xscale)) ==-1)
         {
-            xscale = abs(mNewMapObjectItem->mapObject()->cell().tile()->width() / mNewMapObjectItem->mapObject()->width());
-            po.setX(mNewMapObjectItem->mapObject()->width() - po.x()*xscale);
+            po.setX(mNewMapObjectItem->mapObject()->width() + po.x());
         }
-        if(yscale==-1)
+        if( (yscale/abs(yscale)) ==-1)
         {
-            yscale = abs(mNewMapObjectItem->mapObject()->cell().tile()->height() / mNewMapObjectItem->mapObject()->height());
-            po.setY(mNewMapObjectItem->mapObject()->height() - po.y()*yscale);
+            po.setY(mNewMapObjectItem->mapObject()->height() + po.y());
         }
     }
-    QPointF newPixelPos ;
+    QPointF newPixelPos;
     if((mapDocument()->map()->orientation() != Map::Orthogonal))
     {
         newPixelPos = renderer->screenToPixelCoords(pos);
@@ -385,13 +392,43 @@ void CreateObjectTool::mouseMovedWhileCreatingObject(const QPointF &pos, Qt::Key
     }
     else
     {
-        QPointF mousePos = pos + po;
+        QPointF mousePos;
         if(mNewMapObjectItem->mapObject()->isTileObject())
         {
-            po.setY(po.y()-mNewMapObjectItem->mapObject()->height());
+
+            {
+                qreal px = po.x();
+                qreal py = po.y();
+                po.setX((px*qCos(angle))-(py*qSin(angle)));
+                po.setY((py*qCos(angle))+(px*qSin(angle)));
+            }
+
+            po.setY(po.y()+qSin(angle2)*mNewMapObjectItem->mapObject()->height());
+            po.setX(po.x()+qCos(angle2)*mNewMapObjectItem->mapObject()->height());
+
+            mousePos = pos;
         }
-        newPixelPos = QPointF(floor(mousePos.x()/prefs->snapGrid().width()),floor(mousePos.y()/prefs->snapGrid().height()));
-        newPixelPos = QPointF(newPixelPos.x()*prefs->snapGrid().width(),newPixelPos.y()*prefs->snapGrid().height());
+        else
+        {
+            mousePos = pos + po;
+        }
+        int gx = prefs->snapGrid().height();
+        int gy = prefs->snapGrid().width();
+        if(prefs->snapToGrid())
+        {
+            if(useHalfGrid)
+            {
+                gx/=2;
+                gy/=2;
+            }
+        }
+        else
+        {
+            gx=1;
+            gy=1;
+        }
+        newPixelPos = QPointF(floor(mousePos.x()/gx),floor(mousePos.y()/gy));
+        newPixelPos = QPointF(newPixelPos.x()*gx,newPixelPos.y()*gy);
 
     }
     const QPointF newPos = renderer->screenToPixelCoords(newPixelPos);

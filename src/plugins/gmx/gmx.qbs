@@ -8,5 +8,7 @@ TiledPlugin {
         "gmxplugin.cpp",
         "gmxplugin.h",
         "plugin.json",
+        "pugixml.cpp",
+        "pugixml.hpp",
     ]
 }

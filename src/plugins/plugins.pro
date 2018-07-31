@@ -18,4 +18,4 @@ contains(HAVE_PYTHON, yes) {
 } else {
     !build_pass:message("No Python support")
 }
-
+QT += xml

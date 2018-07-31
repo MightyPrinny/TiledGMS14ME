@@ -54,8 +54,11 @@
 
 #include "qtcompat_p.h"
 
-#include <cmath>
+#include <QtMath>
 #include <float.h>
+# define PI           3.14159265358979323846
+
+#define degToRad(angleDegrees) (angleDegrees * PI / 180.0)
 
 using namespace Tiled;
 using namespace Tiled::Internal;
@@ -1153,13 +1156,21 @@ void ObjectSelectionTool::startMoving(const QPointF &pos,
 void ObjectSelectionTool::updateMovingItems(const QPointF &pos,
                                             Qt::KeyboardModifiers modifiers)
 {
-    const MapRenderer *renderer = mapDocument()->renderer();
+    bool useHalfGrid = modifiers == Qt::KeyboardModifier::ControlModifier;
+
+    MapRenderer *renderer = mapDocument()->renderer();
     const QPointF diff = snapToGrid(pos - mStart, modifiers);
     Preferences *prefs = Preferences::instance();
 
     for (const MovingObject &object : qAsConst(mMovingObjects)) {
 
         QPointF po(0,0);
+
+        qreal degs =  object.mapObject->rotation();
+        qreal degs2 = object.mapObject->rotation()-90;
+
+        qreal angle = qDegreesToRadians(degs);
+        qreal angle2 = qDegreesToRadians(degs2);
         int xscale=1;
         int yscale=1;
         if(object.mapObject->isTileObject())
@@ -1168,44 +1179,74 @@ void ObjectSelectionTool::updateMovingItems(const QPointF &pos,
                 xscale=-1;
             if(object.mapObject->cell().flippedVertically())
                 yscale=-1;
+            xscale = xscale * abs(object.mapObject->width() / object.mapObject->cell().tile()->width()) ;
+            yscale = yscale * abs(object.mapObject->height()/object.mapObject->cell().tile()->height());
         }
         QVariant p = object.mapObject->inheritedProperty(QLatin1String("offsetX"));
         if(p.isValid())
-            po.setX(p.toInt());
+            po.setX(xscale*p.toInt());
         p = object.mapObject->inheritedProperty(QLatin1String("offsetY"));
         if(p.isValid())
             po.setY(p.toInt()*yscale);
         if(object.mapObject->isTileObject())
         {
-            if(xscale==-1)
+            if( (xscale/abs(xscale)) ==-1)
             {
-                xscale = abs(object.mapObject->cell().tile()->width() / object.mapObject->width());
-                po.setX(object.mapObject->width() - po.x()*xscale);
+                po.setX(object.mapObject->width() + po.x());
             }
-            if(yscale==-1)
+            if( (yscale/abs(yscale)) ==-1)
             {
-                yscale = abs(object.mapObject->cell().tile()->height() / object.mapObject->height());
-                po.setY(object.mapObject->height() - po.y()*yscale);
+                po.setY(object.mapObject->height() + po.y());
             }
         }
-
-        QPointF newPixelPos ;
+        QPointF newPixelPos;
         if((mapDocument()->map()->orientation() != Map::Orthogonal))
             newPixelPos = object.oldScreenPosition + diff;
         else
         {
-            QPointF mousePos = object.oldPosition + po + (pos-mStart); //+ center;
+
+            QPointF mousePos;
             if(object.mapObject->isTileObject())
             {
-                po.setY(po.y()-object.mapObject->height());
-                mousePos.setY(mousePos.y()-object.mapObject->height());
+
+                {
+                    qreal px = po.x();
+                    qreal py = po.y();
+                    po.setX((px*qCos(angle))-(py*qSin(angle)));
+                    po.setY((py*qCos(angle))+(px*qSin(angle)));
+                }
+
+                po.setY(po.y()+qSin(angle2)*object.mapObject->height());
+                po.setX(po.x()+qCos(angle2)*object.mapObject->height());
+
+                mousePos = object.oldPosition + po + (pos-mStart);
             }
-            newPixelPos = QPointF(floor(mousePos.x()/prefs->snapGrid().width()),floor(mousePos.y()/prefs->snapGrid().height()));
-            newPixelPos = QPointF(newPixelPos.x()*prefs->snapGrid().width(),newPixelPos.y()*prefs->snapGrid().height());
+            else
+            {
+                mousePos = object.oldPosition + po + (pos-mStart);
+            }
+            int gx = prefs->snapGrid().height();
+            int gy = prefs->snapGrid().width();
+            if(prefs->snapToGrid())
+            {
+                if(useHalfGrid)
+                {
+                    gx/=2;
+                    gy/=2;
+                }
+            }
+            else
+            {
+                gx=1;
+                gy=1;
+            }
+            newPixelPos = QPointF(floor(mousePos.x()/gx),floor(mousePos.y()/gy));
+            newPixelPos = QPointF(newPixelPos.x()*gx,newPixelPos.y()*gy);
 
         }
 
         const QPointF newPos = renderer->screenToPixelCoords(newPixelPos);
+
         object.mapObject->setPosition(newPos - po);
     }
 

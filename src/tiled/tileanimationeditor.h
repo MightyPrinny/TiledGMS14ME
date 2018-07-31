@@ -68,6 +68,8 @@ private slots:
     void currentObjectChanged(Object *object);
 
     void addFrameForTileAt(const QModelIndex &index);
+    void generateFramesFromSelection();
+    void clearAnimations();
 
     void setFrameTime();
     void setDefaultFrameTime(int duration);

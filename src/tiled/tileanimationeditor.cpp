@@ -33,6 +33,7 @@
 #include "zoomable.h"
 #include "preferences.h"
 
+#include <QInputDialog>
 #include <QAbstractListModel>
 #include <QCloseEvent>
 #include <QShortcut>
@@ -321,6 +322,9 @@ TileAnimationEditor::TileAnimationEditor(QWidget *parent)
     connect(mUi->setFrameTimeButton, &QAbstractButton::clicked,
             this, &TileAnimationEditor::setFrameTime);
 
+    connect(mUi->generate,&QPushButton::clicked,this,&TileAnimationEditor::generateFramesFromSelection);
+    connect(mUi->clearAnimations,&QPushButton::clicked,this,&TileAnimationEditor::clearAnimations);
+
     QShortcut *undoShortcut = new QShortcut(QKeySequence::Undo, this);
     QShortcut *redoShortcut = new QShortcut(QKeySequence::Redo, this);
     QShortcut *deleteShortcut = new QShortcut(QKeySequence::Delete, this);
@@ -446,6 +450,99 @@ void TileAnimationEditor::setFrameTime()
     mSuppressUndo = false;
 
     framesEdited();
+}
+void TileAnimationEditor::clearAnimations()
+{
+    for(Tile *tile : this->mTilesetDocument->tileset()->tiles())
+    {
+        if(tile->isAnimated())
+        {
+            setTile(tile);
+            framesEdited();
+
+            tile->setFrames(QVector<Frame>());
+            tileAnimationChanged(tile);
+            framesEdited();
+
+        }
+    }
+}
+void TileAnimationEditor::generateFramesFromSelection()
+{
+    QList<Tile*> tiles = this->mTilesetDocument->selectedTiles();
+    bool ok = false;
+    if(tiles.isEmpty() || tiles.size()==1)
+        return;
+    int len = QInputDialog::getInt(this,QLatin1String("Animation length"),QLatin1String("length"),0,0,2147483647,1,&ok);
+    if(!ok)
+        return;
+    ok=false;
+    int op = QInputDialog::getInt(this,QLatin1String("Animation dir"),QLatin1String("0: vertical, 1: horizontal"),0,0,1,1,&ok);
+    if(!ok)
+        return;
+
+    QVector<int> durations = QVector<int>();
+
+    for(int i=0;i<len;i++)
+    {
+        ok=false;
+        durations.append(QInputDialog::getInt(this,QString(QLatin1String("Frame #")) + QString::number(i),QLatin1String("frame duration(ms)"),100,0,2147483647,1,&ok));
+        if(!ok)
+            return;
+    }
+
+    Tile *minTile = tiles.at(0);
+    Tile *maxTile = tiles.at(0);
+    int hTiles = this->mTilesetDocument->tileset()->imageWidth() / this->mTilesetDocument->tileset()->tileWidth();
+    int vTiles = this->mTilesetDocument->tileset()->imageHeight() / this->mTilesetDocument->tileset()->tileHeight();
+    for(Tile *tile : tiles)
+    {
+        if(tile->id()%hTiles < minTile->id()%hTiles || tile->id()/hTiles < minTile->id()/hTiles)
+            minTile=tile;
+        else if(tile->id()%hTiles >maxTile->id()%hTiles || tile->id()/hTiles > maxTile->id()/hTiles)
+            maxTile = tile;
+    }
+
+    QPoint minPos = QPoint();
+    QPoint maxPos = QPoint();
+
+    minPos.setX(minTile->id() % hTiles);
+    minPos.setY(minTile->id() / hTiles);
+
+    maxPos.setX(maxTile->id() % hTiles);
+    maxPos.setY(maxTile->id() / hTiles);
+
+    int rWidth = abs(maxPos.x()-minPos.x())+1;
+    int rHeight = abs(maxPos.y()-minPos.y())+1;
+    std::cout << rHeight;
+
+    for(int _x = minPos.x(); _x <= maxPos.x() ; ++_x )
+    {
+        for(int _y = minPos.y(); _y <= maxPos.y(); ++_y )
+        {
+            int tileID = _x + _y*hTiles;
+            Tile *myTile = this->mTilesetDocument->tileset()->tileAt(tileID);
+            setTile(myTile);
+            framesEdited();
+            QVector<Frame> frames = QVector<Frame>();
+            for(int l = 0; l<len; ++l )
+            {
+                int tile_id = ((_x + ((op==1)*rWidth*l)) %hTiles ) +(hTiles*((_y + (l*rHeight*(op==0)))%vTiles) );
+                Frame newFrame = {
+                    tile_id,
+                    durations.at(l)
+                };
+                frames.append(newFrame);
+            }
+            myTile->setFrames(frames);
+            tileAnimationChanged(myTile);
+            framesEdited();
+
+
+
+        }
+    }
+
 }
 
 void TileAnimationEditor::tileAnimationChanged(Tile *tile)

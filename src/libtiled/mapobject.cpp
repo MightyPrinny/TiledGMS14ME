@@ -293,19 +293,24 @@ void MapObject::flip(FlipDirection direction, const QPointF &origin)
     qreal newRotation = 0;
     bool hor=false;
     bool ver=false;
+    if(!mCell.isEmpty())
+    {
+        hor = this->cell().flippedHorizontally();
+        ver = this->cell().flippedVertically();
+    }
     if (direction == FlipHorizontally) {
         newRotation = 180.0 - rotation();
         flipTransform.scale(-1, 1);
-        if(!mCell.isEmpty() && !mCell.flippedHorizontally())
+        if(!mCell.isEmpty())
         {
-            hor=true;
+            hor=!hor;
         }
     } else { //direction == FlipVertically
         flipTransform.scale(1, -1);
         newRotation = -rotation();
-        if(!mCell.isEmpty() && !mCell.flippedVertically())
+        if(!mCell.isEmpty())
         {
-            ver=true;
+            ver=!ver;
         }
     }
     flipTransform.translate(-origin.x(), -origin.y());
