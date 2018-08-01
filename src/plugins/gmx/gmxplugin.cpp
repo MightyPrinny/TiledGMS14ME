@@ -421,7 +421,33 @@ Tiled::Map *GmxPlugin::read(const QString &fileName)
             if(QString(root_node->first_node("enableViews")->value()).toInt()!=0)
             {
                 MapObject *obj = new MapObject("View","view",QPointF(0,0),QSizeF(16,16));
+                xml_node<> *viewNode = root_node->first_node("views")->first_node("view");
+                if(viewNode)
+                {
+                    int xview = QString(viewNode->first_attribute("xview")->value()).toInt();
+                    int yview = QString(viewNode->first_attribute("yview")->value()).toInt();
+                    int wview = QString(viewNode->first_attribute("wview")->value()).toInt();
+                    int hview = QString(viewNode->first_attribute("hview")->value()).toInt();
+                    int xport = QString(viewNode->first_attribute("xport")->value()).toInt();
+                    int yport = QString(viewNode->first_attribute("yport")->value()).toInt();
+                    int wport = QString(viewNode->first_attribute("wport")->value()).toInt();
+                    int hport = QString(viewNode->first_attribute("hport")->value()).toInt();
+                    int hborder = QString(viewNode->first_attribute("hborder")->value()).toInt();
+                    int vborder = QString(viewNode->first_attribute("vborder")->value()).toInt();
+                    obj->setProperty("xview",QVariant(xview));
+                    obj->setProperty("yview",QVariant(yview));
+                    obj->setProperty("wview",QVariant(wview));
+                    obj->setProperty("hview",QVariant(hview));
+                    obj->setProperty("xport",QVariant(xport));
+                    obj->setProperty("yport",QVariant(yport));
+                    obj->setProperty("wport",QVariant(wport));
+                    obj->setProperty("hport",QVariant(hport));
+                    obj->setProperty("hborder",QVariant(hborder));
+                    obj->setProperty("vborder",QVariant(vborder));
+                }
                 objects->addObject(obj);
+
+
             }
         }
 
@@ -488,7 +514,6 @@ Tiled::Map *GmxPlugin::read(const QString &fileName)
                 obj->setWidth(templ->object()->width()*abs(scaleX));
                 obj->setHeight(templ->object()->height()*abs(scaleY));
                 objects->addObject(obj);
-                qDebug()<<templ->object()->type();
             }
             else
             {

@@ -355,8 +355,8 @@ void CreateObjectTool::mouseMovedWhileCreatingObject(const QPointF &pos, Qt::Key
     qreal angle = qDegreesToRadians(degs);
     qreal angle2 = qDegreesToRadians(degs2);
 
-    int xscale=1;
-    int yscale=1;
+    double xscale=1;
+    double yscale=1;
     QPointF po = QPointF();
     if(mNewMapObjectItem->mapObject()->isTileObject())
     {

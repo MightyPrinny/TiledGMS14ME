@@ -1171,16 +1171,22 @@ void ObjectSelectionTool::updateMovingItems(const QPointF &pos,
 
         qreal angle = qDegreesToRadians(degs);
         qreal angle2 = qDegreesToRadians(degs2);
-        int xscale=1;
-        int yscale=1;
+        double xscale=1;
+        double yscale=1;
+
         if(object.mapObject->isTileObject())
         {
             if(object.mapObject->cell().flippedHorizontally())
                 xscale=-1;
             if(object.mapObject->cell().flippedVertically())
                 yscale=-1;
-            xscale = xscale * abs(object.mapObject->width() / object.mapObject->cell().tile()->width()) ;
-            yscale = yscale * abs(object.mapObject->height()/object.mapObject->cell().tile()->height());
+            QSizeF tileSize = object.mapObject->cell().tile()->size();
+            double twidth = tileSize.width();
+            double theight = tileSize.height();
+            if(twidth!=0)
+                xscale = xscale * abs(object.mapObject->width() / twidth) ;
+            if(theight!=0)
+                yscale = yscale * abs(object.mapObject->height()/theight);
         }
         QVariant p = object.mapObject->inheritedProperty(QLatin1String("offsetX"));
         if(p.isValid())
@@ -1190,6 +1196,10 @@ void ObjectSelectionTool::updateMovingItems(const QPointF &pos,
             po.setY(p.toInt()*yscale);
         if(object.mapObject->isTileObject())
         {
+            if(xscale==0)
+                xscale = 0.00001;
+            if(yscale==0)
+                yscale= 0.00001;
             if( (xscale/abs(xscale)) ==-1)
             {
                 po.setX(object.mapObject->width() + po.x());

@@ -13,6 +13,7 @@ RoomImporterDialog::RoomImporterDialog(QWidget* parent , bool *oK, ImporterSetti
     mUi->setupUi(this);
     mUi->imagesLabel->setText(QString("../Backgrounds/images"));
     mUi->templateLabel->setText(QString("../Objects/templates"));
+    this->setWindowTitle(QString("Game Maker Room Importer"));
 
 }
 
