@@ -93,6 +93,7 @@
 #include <QUndoStack>
 #include <QUndoView>
 #include <iostream>>
+
 #ifdef Q_OS_WIN
 #include <QtPlatformHeaders\QWindowsWindowFunctions>
 #endif

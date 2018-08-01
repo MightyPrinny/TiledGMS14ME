@@ -34,7 +34,7 @@
 #include "tile.h"
 #include "tileanimationdriver.h"
 #include "tilesetformat.h"
-
+#include <QDir>
 #include "qtcompat_p.h"
 
 namespace Tiled {
@@ -114,6 +114,21 @@ SharedTileset TilesetManager::findTileset(const QString &fileName) const
     for (Tileset *tileset : mTilesets)
         if (tileset->fileName() == fileName)
             return tileset->sharedPointer();
+
+    return SharedTileset();
+}
+
+SharedTileset TilesetManager::findTilesetAbsolute(const QString &fileName) const
+{
+    for (Tileset *tileset : mTilesets)
+    {
+        QDir dir = QDir(tileset->fileName());
+        QDir dir2 = QDir(fileName);
+        if ( dir.absolutePath() == dir2.absolutePath())
+        {
+            return tileset->sharedPointer();
+        }
+    }
 
     return SharedTileset();
 }

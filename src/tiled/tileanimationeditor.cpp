@@ -471,7 +471,7 @@ void TileAnimationEditor::generateFramesFromSelection()
 {
     QList<Tile*> tiles = this->mTilesetDocument->selectedTiles();
     bool ok = false;
-    if(tiles.isEmpty() || tiles.size()==1)
+    if(tiles.isEmpty())
         return;
     int len = QInputDialog::getInt(this,QLatin1String("Animation length"),QLatin1String("length"),0,0,2147483647,1,&ok);
     if(!ok)

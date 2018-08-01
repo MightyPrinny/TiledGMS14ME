@@ -21,21 +21,20 @@
 #pragma once
 
 #include "mapformat.h"
-
 #include "gmx_global.h"
-
-#include <qxmlstream.h>
 
 namespace Gmx {
 
-class GMXSHARED_EXPORT GmxPlugin : public Tiled::WritableMapFormat
+class GMXSHARED_EXPORT GmxPlugin : public Tiled::MapFormat
 {
     Q_OBJECT
     Q_PLUGIN_METADATA(IID "org.mapeditor.MapFormat" FILE "plugin.json")
+    Q_INTERFACES(Tiled::MapFormat)
 
 public:
     GmxPlugin();
-
+    Tiled::Map *read(const QString &fileName) override;
+    bool supportsFile(const QString &fileName) const override;
     bool write(const Tiled::Map *map, const QString &fileName) override;
     QString errorString() const override;
     QString shortName() const override;

@@ -8,7 +8,13 @@ TiledPlugin {
         "gmxplugin.cpp",
         "gmxplugin.h",
         "plugin.json",
-        "pugixml.cpp",
-        "pugixml.hpp",
+        "rapidxml.hpp",
+        "rapidxml_iterators.hpp",
+        "rapidxml_print.hpp",
+        "rapidxml_utils.hpp",
+        "roomimporterdialog.cpp",
+        "roomimporterdialog.h",
+        "roomimporterdialog.ui",
     ]
+    Depends { name: "Qt"; submodules: ["widgets"]; versionAtLeast: "5.5" }
 }

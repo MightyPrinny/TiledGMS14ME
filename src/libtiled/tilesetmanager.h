@@ -66,6 +66,7 @@ public:
 
     void setReloadTilesetsOnChange(bool enabled);
     bool reloadTilesetsOnChange() const;
+    SharedTileset findTilesetAbsolute(const QString &fileName) const;
 
     void setAnimateTiles(bool enabled);
     bool animateTiles() const;

@@ -25,6 +25,10 @@
 #include "tile.h"
 #include "tilelayer.h"
 #include "mapobject.h"
+#include "objecttemplate.h"
+#include "objecttemplateformat.h"
+#include "tilesetmanager.h"
+#include "templatemanager.h"
 #include "objectgroup.h"
 #include <QDebug>
 #include <QDir>
@@ -39,7 +43,12 @@
 #include <vector>
 #include <QTextCodec>
 #include <QTextDocument>
-#include "pugixml.hpp"
+#include "rapidxml.hpp"
+#include <fstream>
+#include <QFileDialog>
+#include <string.h>
+
+#include "roomimporterdialog.h"
 
 using namespace Tiled;
 using namespace Gmx;
@@ -198,31 +207,329 @@ GmxPlugin::GmxPlugin()
 {
 }
 
+static TileLayer* tileLayerAtDepth(QVector<TileLayer*> &layers, int depth,int xo, int yo, Map *map)
+{
+    if(layers.isEmpty())
+    {
+        TileLayer* newLayer = new TileLayer(QString::number(depth).append(QString("_0")),0,0,map->width(),map->height());
+        newLayer->setOffset(QPointF(xo,yo));
+        newLayer->setProperty(QString("depth"),QVariant(depth));
+        layers.append(newLayer);
+        map->addLayer(newLayer);
+        return newLayer;
+    }
+    else
+    {
+        for(TileLayer* tileLayer : layers)
+        {
+            QVariant lDepth = tileLayer->inheritedProperty(QString("depth"));
+            if(lDepth.isValid())
+            {
+                int layerDepth = lDepth.toInt();
+                if(layerDepth==depth && xo == tileLayer->offset().x() && yo == tileLayer->offset().y())
+                {
+                    return tileLayer;
+                }
+            }
+        }
+
+        TileLayer* newLayer = new TileLayer(QString::number(depth).append(QString("_")).append(QString::number(layers.size())),0,0,map->width(),map->height());
+        newLayer->setOffset(QPointF(xo,yo));
+        newLayer->setProperty(QString("depth"),QVariant(depth));
+        layers.append(newLayer);
+        map->addLayer(newLayer);
+        return newLayer;
+    }
+}
+
+static SharedTileset tilesetWithName(QVector<SharedTileset> &tilesets, QString bgName, Map *map, QDir &imageDir)
+{
+
+    for(SharedTileset tileset : tilesets)
+    {
+        if(tileset.get()->name() == bgName)
+        {
+            return tileset;
+        }
+    }
+    SharedTileset newTileset = Tileset::create(bgName,map->tileWidth(),map->tileHeight(),0,0);
+    if(newTileset->loadFromImage(imageDir.filePath(bgName.append(".png"))))
+    {
+        tilesets.append(newTileset);
+    }
+    else
+    {
+        return nullptr;
+    }
+    map->addTileset(newTileset);
+    return newTileset;
+
+}
+
+static bool lesThanLayer(Layer *lay1, Layer *lay2)
+{
+    int depth1 = 9999999;
+    int depth2 = depth1;
+
+    QVariant aux = lay1->inheritedProperty("depth");
+    if(aux.isValid())
+        depth1=aux.toInt();
+    aux = lay2->inheritedProperty("depth");
+    if(aux.isValid())
+        depth2 = aux.toInt();
+    return depth1<depth2;
+}
+
+Tiled::Map *GmxPlugin::read(const QString &fileName)
+{
+    using namespace rapidxml;
+    using namespace std;
+
+    QFile file(fileName);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        mError = tr("Could not open file for reading.");
+        return nullptr;
+    }
+
+    Gmx::ImporterSettings settings = {
+      16,
+        16,
+        256,
+        224,
+        QString("../Backgrounds/images"),
+        QString("../Objects/templates")
+    };
+    bool accepted = false;
+    RoomImporterDialog *sDialog = new RoomImporterDialog(nullptr,&accepted,&settings);
+    sDialog->exec();
+
+    delete sDialog;
+    if(!accepted)
+    {
+        return nullptr;
+    }
+    xml_document<> doc;
+    xml_node<> * root_node;
+
+    ifstream theFile(fileName.toStdString().c_str());
+    vector<char> buffer((istreambuf_iterator<char>(theFile)), istreambuf_iterator<char>());
+    buffer.push_back('\0');
+
+    doc.parse<0>(&buffer[0]);
+    root_node = doc.first_node("room");
+    xml_node<> *tile = root_node->first_node("tiles")->first_node("tile");
+    xml_node<> *instance = root_node->first_node("instances")->first_node("instance");
+    int tileWidth = settings.tileWidth;
+    int tileHeight = settings.tileHeigth;
+    int mapWidth = QString(root_node->first_node("width")->value()).toInt()/tileWidth;
+    int mapHeight = QString(root_node->first_node("height")->value()).toInt()/tileHeight;
+    int bgColor = QString(root_node->first_node("colour")->value()).toInt();
+    bool useBgColor = QString(root_node->first_node("showcolour")->value()).toInt() != 0;
+
+    Map *newMap = new Map(Map::Orthogonal,mapWidth,mapHeight,tileWidth,tileHeight,0);
+    newMap->setProperty("code",QVariant(root_node->first_node("code")->value()));
+    newMap->setQuadWidth(settings.quadWidth);
+    newMap->setQuadHeight(settings.quadHeigth);
+    if(useBgColor)
+    {
+        int r = bgColor % 256;
+        int g = (bgColor / 256) % 256;
+        int b = (bgColor / 65536) % 256;
+        newMap->setBackgroundColor(QColor(r,g,b));
+    }
+    //Import tiles
+    QVector<TileLayer*> *mapLayers = new QVector<TileLayer*>();
+    QVector<SharedTileset> *tilesets = new QVector<SharedTileset>();
+    QDir imageDir = QDir(settings.imagesPath);
+    while(tile)
+    {
+        if(QString(tile->name()) == "tile")
+        {
+
+            int w = QString(tile->first_attribute("w")->value()).toInt();
+            int h = QString(tile->first_attribute("h")->value()).toInt();
+            int htiles=1;
+            int vtiles=1;
+            if(w!=tileWidth||h!=tileHeight)
+            {
+                if(((w%tileWidth)==0) && ((h%tileWidth)==0))
+                {
+                    htiles = w/tileWidth;
+                    vtiles = h/tileHeight;
+                }
+                else
+                {
+                    tile = tile->next_sibling();
+                    continue;
+                }
+            }
+            int x = QString(tile->first_attribute("x")->value()).toInt();
+            int y = QString(tile->first_attribute("y")->value()).toInt();
+            int xo = QString(tile->first_attribute("xo")->value()).toInt();
+            int yo = QString(tile->first_attribute("yo")->value()).toInt();
+            int xoff = x%tileWidth;
+            int yoff = y%tileHeight;
+            x = floor(x/tileWidth)*tileWidth;
+            y = floor(y/tileHeight)*tileHeight;
+            int depth = QString(tile->first_attribute("depth")->value()).toInt();
+            QString bgName = QString(tile->first_attribute("bgName")->value());
+            TileLayer *layer = tileLayerAtDepth(*mapLayers,depth,xoff, yoff,newMap);
+            if(layer==nullptr)
+            {
+                tile = tile->next_sibling();
+                continue;
+            }
+            SharedTileset tileset = tilesetWithName(*tilesets,bgName,newMap,imageDir);
+            if(tileset==nullptr)
+            {
+                tile = tile->next_sibling();
+                continue;
+            }
+            for(int ht = 0;ht<htiles;++ht)
+            {
+                for(int vt=0; vt<vtiles;vt++)
+                {
+                    int tileID = ((xo/tileWidth)+ht) + ((yo/tileHeight)+vt)*tileset->columnCount();
+
+                    Tile *addtile  = new Tile(tileID, tileset.get());
+                    layer->setCell(floor(x/tileWidth)+ht,floor(y/tileHeight)+vt,Cell(addtile));
+                }
+            }
+
+
+        }
+        else
+        {
+            break;
+        }
+        tile = tile->next_sibling();
+    }
+    qDebug()<<"Tiles imported";
+
+
+    //Import Objects using templates
+
+    Tiled::ObjectGroup *objects;
+
+    if(instance)
+    {
+        objects = new Tiled::ObjectGroup(QString("objects"),0,0);
+
+        //Add view object if views are enabled
+        if(root_node->first_node("enableViews"))
+        {
+            if(QString(root_node->first_node("enableViews")->value()).toInt()!=0)
+            {
+                MapObject *obj = new MapObject("View","view",QPointF(0,0),QSizeF(16,16));
+                objects->addObject(obj);
+            }
+        }
+
+        QDir templatePath = QDir(settings.templatePath);
+        QDir *imagesPath = new QDir(settings.templatePath);
+        imagesPath->cdUp();
+        SharedTileset imagesTileset = TilesetManager::instance()->loadTileset(imagesPath->filePath(QString("images.tsx")));
+        if(imagesTileset.get()!=nullptr)
+            newMap->addTileset(imagesTileset);
+        delete imagesPath;
+        for(instance; instance; instance=instance->next_sibling())
+        {
+            int x = QString(instance->first_attribute("x")->value()).toInt();
+
+            int y = QString(instance->first_attribute("y")->value()).toInt();
+
+            QString code = QString(instance->first_attribute("code")->value());
+
+            QString objName = QString(instance->first_attribute("objName")->value());
+
+            QString tempath = QString(objName);
+            tempath = tempath.append(QString(".tx"));
+            tempath = templatePath.filePath(tempath);
+            QPointF pos = QPointF(x,y);
+            qDebug()<<"loading";
+            ObjectTemplate *templ = TemplateManager::instance()->loadObjectTemplate(tempath);
+            qDebug()<<"loaded";
+
+            if(templ!=nullptr&&templ->object()!=nullptr&&templ->object()->inheritedProperty(QString("originX")).isValid())
+            {
+                qDebug()<<templ->object()->type();
+                QVariant aux = templ->object()->inheritedProperty(QString("originX"));
+                int originX = aux.toInt();
+                aux = templ->object()->inheritedProperty(QString("originY"));
+                int originY = aux.toInt();
+
+                double rotation = QString(instance->first_attribute("rotation")->value()).toDouble() *-1;
+                double scaleX = QString(instance->first_attribute("scaleX")->value()).toDouble();
+                double scaleY = QString(instance->first_attribute("scaleY")->value()).toDouble();
+                if(scaleX<0)
+                {
+                    originX = templ->object()->width() - originX;
+                }
+                if(scaleY<0)
+                {
+                    originY = templ->object()->height() - originY;
+                }
+                QPointF origin = QPointF(-originX*abs(scaleX),-originY*abs(scaleY));
+                if(templ->object()->isTileObject())
+                    origin.setY(origin.y()+(templ->object()->height()*scaleY));
+                QTransform transform;
+                transform.rotate(rotation);
+                pos += transform.map(origin);
+
+                MapObject *obj = new MapObject(QString(""),objName,pos,QSizeF(templ->object()->width()*abs(scaleX),templ->object()->height()*abs(scaleY)));
+                obj->setObjectTemplate(templ);
+                obj->setProperty(QString("code"),code);
+                obj->syncWithTemplate();
+                if(scaleX<0)
+                    obj->flip(FlipHorizontally,pos);
+                if(scaleY<0)
+                    obj->flip(FlipVertically,pos);
+                obj->setRotation(rotation);
+                obj->setWidth(templ->object()->width()*abs(scaleX));
+                obj->setHeight(templ->object()->height()*abs(scaleY));
+                objects->addObject(obj);
+                qDebug()<<templ->object()->type();
+            }
+            else
+            {
+                qDebug()<<QString("Bad template or file doesn't exist: ").append(tempath).toStdString().c_str();
+                continue;
+            }
+        }
+        newMap->addLayer(objects);
+        qDebug()<<"Done";
+    }
+
+    QList<Layer*> mLayers = newMap->layers();
+    std::sort(mLayers.begin(),mLayers.end(),lesThanLayer);
+    delete mapLayers;
+    delete tilesets;
+    return newMap;
+
+}
+
+bool GmxPlugin::supportsFile(const QString &fileName) const
+{
+    if(fileName.endsWith(".room.gmx"))
+        return true;
+    return false;
+}
+
 bool GmxPlugin::write(const Map *map, const QString &fileName)
 {
-    using namespace pugi;
     SaveFile file(fileName);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
         mError = tr("Could not open file for writing.");
         return false;
     }
 
-    //file.commit();
     QXmlStreamWriter stream(file.device());
-
-    /*xml_document* doc = new xml_document();
-    xml_node comment = doc->append_child(node_comment);
-    comment.set_value("This Document is generated by Tiled, if you edit it by hand then you do so at your own risk!");
-
-    xml_node room;
-    */
 
     stream.writeComment("This Document is generated by Tiled, if you edit it by hand then you do so at your own risk!");
     stream.setAutoFormatting(true);
     stream.setAutoFormattingIndent(2);
     stream.writeStartElement("room");
 
-    //room = doc->append_child("room");
 
     int mapPixelWidth = map->tileWidth() * map->width();
     int mapPixelHeight = map->tileHeight() * map->height();
@@ -745,10 +1052,8 @@ bool GmxPlugin::write(const Map *map, const QString &fileName)
         stream.writeEndElement();
 
     }
+
     stream.writeEndElement();
-
-
-
 
     writeProperty(stream, map, "PhysicsWorld", false);
     writeProperty(stream, map, "PhysicsWorldTop", 0);
