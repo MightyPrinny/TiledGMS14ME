@@ -10,6 +10,7 @@
 #include <QThread>
 #include <unordered_map>
 #include <string>
+#include "rapidxml.hpp"
 using namespace Tiled;
 
 
@@ -42,7 +43,10 @@ private:
     std::unique_ptr<QProgressDialog>progress = nullptr;
     QFile *findSprite(QString filename, QDir* dir);
     GameMakerObjectImporter *myThread = nullptr;
+    void GameMakerObjectImporter::mapChilds(rapidxml::xml_node<>* node, std::unordered_map<std::string,std::string> *objectFolderMap);
+    void GameMakerObjectImporter::mapObjectsToFolders(QString &projectFilePath, std::unordered_map<std::string, std::string> *objectFolderMap);
     int addImage(QString &fileDir, int width, int heigth, QVector<imageEntry *> *list);
+    QString GameMakerObjectImporter::getNodePath(rapidxml::xml_node<>* node);
 private slots:
     void finnishThread();
 };

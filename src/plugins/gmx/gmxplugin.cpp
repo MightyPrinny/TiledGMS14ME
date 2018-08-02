@@ -33,6 +33,7 @@
 #include <QDebug>
 #include <QDir>
 #include <QFileInfo>
+#include <QDirIterator>
 
 #include <QRegularExpression>
 #include <QXmlStreamWriter>
@@ -47,6 +48,7 @@
 #include <fstream>
 #include <QFileDialog>
 #include <string.h>
+#include <unordered_map>
 
 #include "roomimporterdialog.h"
 
@@ -202,6 +204,24 @@ static int indexOfAnim(int length, QVector<int> &speeds, QVector<AnimationLayer>
     }
     return -1;
 }
+
+static void mapTemplates(std::unordered_map<std::string,std::string> *map, QDir &root )
+{
+    QFileInfoList fileInfoList = root.entryInfoList();
+    qDebug()<<root.path();
+
+    QDirIterator it(root.path(), QStringList() << "*.tx", QDir::Files, QDirIterator::Subdirectories);
+    while (it.hasNext())
+    {
+        QFileInfo info = it.fileInfo();
+        if(info.isFile())
+        {
+            map->emplace(make_pair(info.baseName().toStdString(),info.filePath().toStdString()));
+        }
+        it.next();
+    }
+}
+
 
 GmxPlugin::GmxPlugin()
 {
@@ -414,7 +434,8 @@ Tiled::Map *GmxPlugin::read(const QString &fileName)
     if(instance)
     {
         objects = new Tiled::ObjectGroup(QString("objects"),0,0);
-
+        unordered_map<string,string> *templateMap = new unordered_map<string,string> ();
+        mapTemplates(templateMap,QDir(settings.templatePath.append(QString("/"))));
         //Add view object if views are enabled
         if(root_node->first_node("enableViews"))
         {
@@ -451,7 +472,8 @@ Tiled::Map *GmxPlugin::read(const QString &fileName)
             }
         }
 
-        QDir templatePath = QDir(settings.templatePath);
+
+
         QDir *imagesPath = new QDir(settings.templatePath);
         imagesPath->cdUp();
         SharedTileset imagesTileset = TilesetManager::instance()->loadTileset(imagesPath->filePath(QString("images.tsx")));
@@ -468,17 +490,18 @@ Tiled::Map *GmxPlugin::read(const QString &fileName)
 
             QString objName = QString(instance->first_attribute("objName")->value());
 
-            QString tempath = QString(objName);
-            tempath = tempath.append(QString(".tx"));
-            tempath = templatePath.filePath(tempath);
+            QString tempath = QString("");
+            unordered_map<string,string>::iterator it = templateMap->find(objName.toStdString());
+            if(it != templateMap->end())
+            {
+                tempath = QString(it->second.c_str());
+            }
+
             QPointF pos = QPointF(x,y);
-            qDebug()<<"loading";
             ObjectTemplate *templ = TemplateManager::instance()->loadObjectTemplate(tempath);
-            qDebug()<<"loaded";
 
             if(templ!=nullptr&&templ->object()!=nullptr&&templ->object()->inheritedProperty(QString("originX")).isValid())
             {
-                qDebug()<<templ->object()->type();
                 QVariant aux = templ->object()->inheritedProperty(QString("originX"));
                 int originX = aux.toInt();
                 aux = templ->object()->inheritedProperty(QString("originY"));
@@ -497,7 +520,7 @@ Tiled::Map *GmxPlugin::read(const QString &fileName)
                 }
                 QPointF origin = QPointF(-originX*abs(scaleX),-originY*abs(scaleY));
                 if(templ->object()->isTileObject())
-                    origin.setY(origin.y()+(templ->object()->height()*scaleY));
+                    origin.setY(origin.y()+(templ->object()->height()*abs(scaleY)));
                 QTransform transform;
                 transform.rotate(rotation);
                 pos += transform.map(origin);
@@ -523,6 +546,7 @@ Tiled::Map *GmxPlugin::read(const QString &fileName)
         }
         newMap->addLayer(objects);
         qDebug()<<"Done";
+        delete templateMap;
     }
 
     QList<Layer*> mLayers = newMap->layers();
