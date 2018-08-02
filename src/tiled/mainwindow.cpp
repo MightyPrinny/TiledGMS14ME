@@ -72,6 +72,7 @@
 #include "worldmanager.h"
 #include "zoomable.h"
 #include "gamemakerobjectimporter.h"
+#include <QStringBuilder>
 
 #ifdef Q_OS_MAC
 #include "macsupport.h"
@@ -93,6 +94,7 @@
 #include <QUndoStack>
 #include <QUndoView>
 #include <iostream>>
+#include <QString>
 
 #ifdef Q_OS_WIN
 #include <QtPlatformHeaders\QWindowsWindowFunctions>
@@ -372,6 +374,7 @@ MainWindow::MainWindow(QWidget *parent, Qt::WindowFlags flags)
 
     connect(mUi->actionNewMap, &QAction::triggered, this, &MainWindow::newMap);
     connect(mUi->actionNewTileset, &QAction::triggered, this, [this] { newTileset(); });
+    connect(mUi->actionAutoMapCRule,&QAction::triggered,this,&MainWindow::newAutomapOMRule);
     connect(mUi->actionOpen, &QAction::triggered, this, &MainWindow::openFileDialog);
     connect(mUi->actionClearRecentFiles, &QAction::triggered, preferences, &Preferences::clearRecentFiles);
     connect(mUi->actionSave, &QAction::triggered, this, &MainWindow::saveFile);
@@ -710,7 +713,49 @@ void MainWindow::newMap()
 
     mDocumentManager->addDocument(mapDocument);
 }
+void MainWindow::newAutomapOMRule()
+{
+    QString tilesetFileName = QFileDialog::getOpenFileName(this,QLatin1String("Load tileset"),QLatin1String("../Backgrounds/images"),QLatin1String("*.tsx"));
+    QFileInfo finfo = QFileInfo(tilesetFileName);
+    if(!finfo.exists())
+        return;
+    SharedTileset tileset = TilesetManager::instance()->loadTileset(tilesetFileName);
+    if(!tileset)
+    {
+        return;
+    }
 
+    std::unique_ptr<Map> map { new Map(Map::Orthogonal,
+                                       tileset.get()->columnCount()*2, tileset.get()->rowCount()*2,
+                                       tileset.get()->tileWidth(), tileset.get()->tileHeight(),
+                                       0) };
+
+    MapDocumentPtr newMap =MapDocumentPtr::create( map.release());
+    TileLayer *input = new TileLayer(QString(QLatin1String("input_")),0,0,newMap->map()->width(),newMap->map()->height());
+    newMap->map()->addTileset(tileset);
+    newMap->map()->addLayer(input);
+    int htiles = tileset.get()->columnCount();
+    int vtiles = tileset.get()->rowCount();
+    for(int i=0;i<htiles;++i)
+    {
+        for(int j=0;j<vtiles;++j)
+        {
+            int tileID = i + j*htiles;
+            Tile *tile = new Tile(tileID,tileset.get());
+            Cell c = Cell(tile);
+            input->setCell(i*2,j*2,c);
+        }
+    }
+    TileLayer *regions = input->copy(0,0,newMap->map()->width(),newMap->map()->height());
+    regions->setName(QLatin1String("regions"));
+    newMap->map()->addLayer(regions);
+    ObjectGroup *output = new ObjectGroup(QString(QLatin1String("output_")),0,0);
+    newMap->map()->addLayer(output);
+
+    mDocumentManager->addDocument(newMap);
+
+
+}
 bool MainWindow::openFile(const QString &fileName, FileFormat *fileFormat)
 {
     if (fileName.isEmpty())

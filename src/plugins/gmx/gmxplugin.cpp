@@ -813,6 +813,8 @@ bool GmxPlugin::write(const Map *map, const QString &fileName)
 
                                 stream.writeAttribute("id", QString::number(++tileId));
                                 stream.writeAttribute("depth", QString::number(animLayer + t));
+                                stream.writeAttribute("locked","0");
+                                stream.writeAttribute("colour",QString::number(4294967295));
 
                                 stream.writeAttribute("scaleX", QString::number(scaleX));
                                 stream.writeAttribute("scaleY", QString::number(scaleY));
@@ -836,6 +838,7 @@ bool GmxPlugin::write(const Map *map, const QString &fileName)
                                 scaleX = -1;
                                 pixelX += tile->width();
                             }
+
                             if (cell.flippedVertically()) {
                                 scaleY = -1;
                                 pixelY += tile->height();
@@ -868,6 +871,9 @@ bool GmxPlugin::write(const Map *map, const QString &fileName)
 
                             stream.writeAttribute("id", QString::number(++tileId));
                             stream.writeAttribute("depth", depth);
+                            stream.writeAttribute("locked","0");
+                            stream.writeAttribute("colour",QString::number(4294967295));
+
 
                             stream.writeAttribute("scaleX", QString::number(scaleX));
                             stream.writeAttribute("scaleY", QString::number(scaleY));

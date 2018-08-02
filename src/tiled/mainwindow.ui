@@ -128,6 +128,7 @@
     <addaction name="actionOffsetMap"/>
     <addaction name="separator"/>
     <addaction name="actionAutoMap"/>
+    <addaction name="actionAutoMapCRule"/>
     <addaction name="actionAutoMapWhileDrawing"/>
     <addaction name="separator"/>
     <addaction name="actionMapProperties"/>
@@ -675,6 +676,11 @@
   <action name="actionGenerate_Templates">
    <property name="text">
     <string>Generate Templates</string>
+   </property>
+  </action>
+  <action name="actionAutoMapCRule">
+   <property name="text">
+    <string>New AutoMap Object Mapping Rule</string>
    </property>
   </action>
  </widget>

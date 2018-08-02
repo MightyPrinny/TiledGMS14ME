@@ -106,6 +106,8 @@ protected:
     void dragEnterEvent(QDragEnterEvent *) override;
     void dropEvent(QDropEvent *) override;
 
+public slots:
+    void newAutomapOMRule();
 private slots:
     void newMap();
     void openFileDialog();

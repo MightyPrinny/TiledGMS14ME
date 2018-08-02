@@ -92,6 +92,8 @@ private:
     TemplatesView *mTemplatesView;
 
     QAction *mChooseDirectory;
+    QAction *mCollapseAll;
+    QAction *mExpandAll;
     QAction *mUndoAction;
     QAction *mRedoAction;
     QPushButton *mFixTilesetButton;
@@ -129,6 +131,8 @@ protected:
 public slots:
     void onCurrentChanged(const QModelIndex &index);
     void updateNameFilter(const QString &text);
+    void collapseTree();
+    void expandTree();
 
 private:
     void onTemplatesDirectoryChanged(const QString &rootPath);

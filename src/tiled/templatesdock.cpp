@@ -63,6 +63,8 @@ TemplatesDock::TemplatesDock(QWidget *parent)
     , mTemplatesView(new TemplatesView)
     , mChooseDirectory(new QAction(this))
     , mUndoAction(new QAction(this))
+    , mCollapseAll(new QAction(this))
+    , mExpandAll(new QAction(this))
     , mRedoAction(new QAction(this))
     , mMapScene(new MapScene(this))
     , mMapView(new MapView(this, MapView::NoStaticContents))
@@ -94,7 +96,15 @@ TemplatesDock::TemplatesDock(QWidget *parent)
     Utils::setThemeIcon(mChooseDirectory, "document-open");
     connect(mChooseDirectory, &QAction::triggered, this, &TemplatesDock::chooseDirectory);
 
+    mCollapseAll->setIconText(QString(QLatin1String("Collase All")));
+    mExpandAll->setIconText(QString(QLatin1String("ExpandAll")));
+
+    connect(mCollapseAll, &QAction::triggered, mTemplatesView, &TemplatesView::collapseAll);
+    connect(mExpandAll, &QAction::triggered, mTemplatesView, &TemplatesView::expandAll);
+
     toolBar->addAction(mChooseDirectory);
+    toolBar->addAction(mCollapseAll);
+    toolBar->addAction(mExpandAll);
 
     mUndoAction->setIcon(QIcon(QLatin1String(":/images/16x16/edit-undo.png")));
     Utils::setThemeIcon(mUndoAction, "edit-undo");
@@ -500,10 +510,31 @@ void TemplatesView::setSelectedTemplate(const QString &path)
 
  void TemplatesView::updateNameFilter(const QString &text)
  {
-     std::string str= text.toStdString() + "*";
+     std::string str;
+     if(text!=QLatin1String(""))
+     {
+        mModel->setFilter(QDir::Files);
+        str= "*" + text.toStdString() + "*";
+     }
+     else
+     {
+         mModel->setFilter(QDir::NoFilter);
+         str = "*";
+         this->collapseAll();
+
+     }
+
      mModel->setNameFilters(QStringList(QLatin1String(str.c_str())));
  }
 
+  void TemplatesView::collapseTree()
+  {
+      this->collapseAll();
+  }
+  void TemplatesView::expandTree()
+  {
+      this->expandAll();
+  }
 void TemplatesView::contextMenuEvent(QContextMenuEvent *event)
 {
     const QModelIndex index = indexAt(event->pos());
