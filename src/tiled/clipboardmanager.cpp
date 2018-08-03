@@ -239,6 +239,48 @@ void ClipboardManager::pasteObjectGroup(const ObjectGroup *objectGroup,
         MapObject *objectClone = mapObject->clone();
         objectClone->resetId();
         objectClone->setPosition(objectClone->position() + insertPos);
+        if(objectClone->isTileObject())
+        {
+            int tw = mapDocument->map()->tileWidth();
+            int th = mapDocument->map()->tileHeight();
+
+            QPointF offset = QPointF(0,0);
+            QTransform t;
+            t.rotate(objectClone->rotation());
+            QVariant aux = objectClone->inheritedProperty(QString(QLatin1String("offsetX")));
+            double scaleX = abs(objectClone->width())/abs(objectClone->cell().tile()->width());
+            double scaleY = abs(objectClone->height())/abs(objectClone->cell().tile()->height());
+            if(objectClone->cell().flippedHorizontally())
+                scaleX*=-1;
+            if(objectClone->cell().flippedVertically())
+                scaleY*=-1;
+
+            if(aux.isValid())
+            {
+                if(scaleX>=0)
+                    offset.setX(aux.toInt()*scaleX);
+                else
+                    offset.setX(objectClone->width()-aux.toInt()*abs(scaleX));
+            }
+
+            aux = objectClone->inheritedProperty(QString(QLatin1String("offsetY")));
+            if(aux.isValid())
+            {
+                if(scaleY>=0)
+                    offset.setY(aux.toInt()*scaleY);
+                else
+                    offset.setY(objectClone->height()-aux.toInt()*abs(scaleY));
+            }
+
+            objectClone->setPosition(objectClone->position()+offset);
+            objectClone->setX(floor((objectClone->x()+tw)/tw)*tw);
+            objectClone->setY(floor((objectClone->y()+th)/th)*th);
+
+            offset.setY(offset.y()-objectClone->height());
+
+
+            objectClone->setPosition(objectClone->position() - t.map(offset));
+        }
         objectsToAdd.append(AddMapObjects::Entry { objectClone, currentObjectGroup });
     }
 
