@@ -387,6 +387,12 @@ Tiled::Map *GmxPlugin::read(const QString &fileName)
             int y = QString(tile->first_attribute("y")->value()).toInt();
             int xo = QString(tile->first_attribute("xo")->value()).toInt();
             int yo = QString(tile->first_attribute("yo")->value()).toInt();
+            int scaleX = QString(tile->first_attribute("scaleX")->value()).toInt();
+            int scaleY = QString(tile->first_attribute("scaleY")->value()).toInt();
+            if(scaleX==-1)
+                x-=tileWidth;
+            if(scaleY==-1)
+                y-=tileHeight;
             int xoff = x%tileWidth;
             int yoff = y%tileHeight;
             x = floor(x/tileWidth)*tileWidth;
@@ -412,7 +418,12 @@ Tiled::Map *GmxPlugin::read(const QString &fileName)
                     int tileID = ((xo/tileWidth)+ht) + ((yo/tileHeight)+vt)*tileset->columnCount();
 
                     Tile *addtile  = new Tile(tileID, tileset.get());
-                    layer->setCell(floor(x/tileWidth)+ht,floor(y/tileHeight)+vt,Cell(addtile));
+                    Cell ncell = Cell(addtile);
+                    if(scaleX==-1)
+                        ncell.setFlippedHorizontally(true);
+                    if(scaleY==-1)
+                        ncell.setFlippedVertically(true);
+                    layer->setCell(floor(x/tileWidth)+ht,floor(y/tileHeight)+vt,ncell);
                 }
             }
 
