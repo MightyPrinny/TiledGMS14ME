@@ -213,7 +213,39 @@ void ClipboardManager::pasteObjectGroup(const ObjectGroup *objectGroup,
     if (!(flags & PasteInPlace)) {
         // Determine where to insert the objects
         MapRenderer *renderer = mapDocument->renderer();
-        const QPointF center = objectGroup->objectsBoundingRect().center();
+        QPointF center = objectGroup->objectsBoundingRect().topLeft();
+        if(objectGroup->objects().size()==1 && objectGroup->objectAt(0)->isTileObject())
+        {
+            MapObject *objectClone = objectGroup->objectAt(0);
+            QPointF offset = QPointF(0,0);
+            QTransform t;
+            t.rotate(objectClone->rotation());
+            QVariant aux = objectClone->inheritedProperty(QString(QLatin1String("offsetX")));
+            double scaleX = abs(objectClone->width())/abs(objectClone->cell().tile()->width());
+            double scaleY = abs(objectClone->height())/abs(objectClone->cell().tile()->height());
+            if(objectClone->cell().flippedHorizontally())
+                scaleX*=-1;
+            if(objectClone->cell().flippedVertically())
+                scaleY*=-1;
+
+            if(aux.isValid())
+            {
+                if(scaleX>=0)
+                    offset.setX(aux.toInt()*scaleX);
+                else
+                    offset.setX(objectClone->width()-aux.toInt()*abs(scaleX));
+            }
+
+            aux = objectClone->inheritedProperty(QString(QLatin1String("offsetY")));
+            if(aux.isValid())
+            {
+                if(scaleY>=0)
+                    offset.setY(aux.toInt()*scaleY);
+                else
+                    offset.setY(objectClone->height()-aux.toInt()*abs(scaleY));
+            }
+           center-=t.map(offset);
+        }
 
         // Take the mouse position if the mouse is on the view, otherwise
         // take the center of the view.
@@ -238,11 +270,13 @@ void ClipboardManager::pasteObjectGroup(const ObjectGroup *objectGroup,
 
         MapObject *objectClone = mapObject->clone();
         objectClone->resetId();
-        objectClone->setPosition(objectClone->position() + insertPos);
+        int tw = mapDocument->map()->tileWidth();
+        int th = mapDocument->map()->tileHeight();
+
+
         if(objectClone->isTileObject())
         {
-            int tw = mapDocument->map()->tileWidth();
-            int th = mapDocument->map()->tileHeight();
+            objectClone->setPosition(objectClone->position() + insertPos);
 
             QPointF offset = QPointF(0,0);
             QTransform t;
@@ -273,13 +307,18 @@ void ClipboardManager::pasteObjectGroup(const ObjectGroup *objectGroup,
             }
 
             objectClone->setPosition(objectClone->position()+offset);
-            objectClone->setX(floor((objectClone->x()+tw)/tw)*tw);
-            objectClone->setY(floor((objectClone->y()+th)/th)*th);
+            objectClone->setX(floor((objectClone->x())/tw)*tw);
+            objectClone->setY(floor((objectClone->y())/th)*th);
 
             offset.setY(offset.y()-objectClone->height());
 
 
             objectClone->setPosition(objectClone->position() - t.map(offset));
+        }
+        else
+        {
+            //insertPos += QPointF(tw,th);
+            objectClone->setPosition(objectClone->position() + insertPos);
         }
         objectsToAdd.append(AddMapObjects::Entry { objectClone, currentObjectGroup });
     }
