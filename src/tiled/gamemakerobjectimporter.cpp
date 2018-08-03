@@ -184,6 +184,7 @@ void GameMakerObjectImporter::generateTemplates()
 
     QString projectFilePath = str("");
     unordered_map<string,string> *objectFolderMap = new unordered_map<string,string>();
+    unordered_map<string,int> *imageIDMap = new unordered_map<string,int>();
     bool useObjectFolders = false;
 
     {
@@ -286,6 +287,7 @@ void GameMakerObjectImporter::generateTemplates()
             delete spriteFile;
             continue;
         }
+        QString spr = QString(spriteName);
 
         QString imageFileDir = imageDir.relativeFilePath(spriteName.append(QLatin1String("_0.png")));
         theFile.close();
@@ -322,7 +324,7 @@ void GameMakerObjectImporter::generateTemplates()
             maxHeigth=imageHeigth;
 
         //Add image to the image list
-        int gid = addImage(imageFileDir,imageWidth,imageHeigth,imageList);
+        int gid = addImage(spr,imageFileDir,imageWidth,imageHeigth,imageList,imageIDMap);
 
         //Make template
         QString subFolders = str("");
@@ -580,6 +582,7 @@ void GameMakerObjectImporter::generateTemplates()
     delete typesFile;
     delete imageList;
     delete objectFolderMap;
+    delete imageIDMap;
     progress->close();
     delete progress;
 
@@ -588,7 +591,7 @@ void GameMakerObjectImporter::generateTemplates()
 QFile* GameMakerObjectImporter::findSprite(QString filename, QDir* dir)
 {
     QString fname = filename.append(QLatin1String(".sprite.gmx"));
-    QFile * newFile = new QFile(dir->filePath(fname));
+    QFile * newFile = new QFile(dir->absoluteFilePath(fname));
     if(newFile->exists())
         return newFile;
     else
@@ -598,23 +601,22 @@ QFile* GameMakerObjectImporter::findSprite(QString filename, QDir* dir)
 
     return nullptr;
 }
-int GameMakerObjectImporter::addImage(QString &fileDir,int width, int heigth, QVector<imageEntry*> *list)
+int GameMakerObjectImporter::addImage(QString &filename,QString &fileDir,int width, int heigth, QVector<imageEntry*> *list, std::unordered_map<std::string,int> *idmap)
 {
+    using namespace std;
     int rval = -1;
     int total = list->size();
-    for(int i=0;i<total;i++)
-    {
-        if(list->at(i)->path == fileDir)
-        {
-            rval=i;
-            break;
-        }
-    }
-    if(rval==-1)
+    auto find = idmap->find(filename.toStdString());
+    if(find==idmap->end())
     {
         imageEntry *img = new imageEntry(fileDir,QString(QLatin1String("sprites/images/")).append(fileDir),width,heigth);
         list->append(img);
         rval = list->size()-1;
+        idmap->emplace(make_pair(filename.toStdString(),rval));
+    }
+    else
+    {
+        rval = find->second;
     }
     return rval;
 }

@@ -45,7 +45,7 @@ private:
     GameMakerObjectImporter *myThread = nullptr;
     void GameMakerObjectImporter::mapChilds(rapidxml::xml_node<>* node, std::unordered_map<std::string,std::string> *objectFolderMap);
     void GameMakerObjectImporter::mapObjectsToFolders(QString &projectFilePath, std::unordered_map<std::string, std::string> *objectFolderMap);
-    int addImage(QString &fileDir, int width, int heigth, QVector<imageEntry *> *list);
+    int addImage(QString &filename, QString &fileDir, int width, int heigth, QVector<imageEntry *> *list, std::unordered_map<std::string, int> *idmap);
     QString GameMakerObjectImporter::getNodePath(rapidxml::xml_node<>* node);
 private slots:
     void finnishThread();
