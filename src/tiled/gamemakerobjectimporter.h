@@ -34,13 +34,13 @@ class GameMakerObjectImporter : public QThread
 {
     Q_OBJECT
 public:
-    GameMakerObjectImporter();
+    GameMakerObjectImporter(QWidget *wd);
     void generateTemplates();
     void generateTemplatesInThread();
 protected:
     void run() override;
 private:
-    std::unique_ptr<QProgressDialog>progress = nullptr;
+    QWidget *prtWidget;
     QFile *findSprite(QString filename, QDir* dir);
     GameMakerObjectImporter *myThread = nullptr;
     void GameMakerObjectImporter::mapChilds(rapidxml::xml_node<>* node, std::unordered_map<std::string,std::string> *objectFolderMap);

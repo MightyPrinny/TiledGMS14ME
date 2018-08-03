@@ -11,9 +11,9 @@
 #include "rapidxml_iterators.hpp"
 #include <QDebug>
 #include <stack>
-GameMakerObjectImporter::GameMakerObjectImporter()
+GameMakerObjectImporter::GameMakerObjectImporter(QWidget *wd)
 {
-
+    this->prtWidget = wd;
 }
 
 void GameMakerObjectImporter::run()
@@ -23,7 +23,7 @@ void GameMakerObjectImporter::run()
 
 void GameMakerObjectImporter::generateTemplatesInThread()
 {
-    myThread = new GameMakerObjectImporter();
+    myThread = new GameMakerObjectImporter(prtWidget);
     connect(myThread, &GameMakerObjectImporter::finished, myThread, &GameMakerObjectImporter::finnishThread);
     myThread->start(QThread::HighPriority);
 }
@@ -32,6 +32,7 @@ void GameMakerObjectImporter::finnishThread()
 {
     myThread->deleteLater();
     delete myThread;
+
 }
 
 static rapidxml::xml_node<> *nodeAppendChild(rapidxml::xml_document<> *doc, rapidxml::xml_node<> *node, char* name, char* value = 0)
@@ -100,7 +101,6 @@ void GameMakerObjectImporter::mapChilds(rapidxml::xml_node<>* node, std::unorder
         objName.remove(str("objects\\"));
         string objectName = objName.toStdString();
         objectFolderMap->emplace(make_pair(objectName,path));
-        qDebug()<<str("added pair: ").append(objName).append(str(",")).append(str((char*)path.c_str()));
         itNode = itNode->next_sibling("object");
     }
     itNode = node->first_node("objects");
@@ -134,10 +134,10 @@ void GameMakerObjectImporter::mapObjectsToFolders(QString &projectFilePath, std:
 
 void GameMakerObjectImporter::generateTemplates()
 {
-    QString dir = QFileDialog::getExistingDirectory(nullptr, QLatin1String("Open Directory"),
+    QString dir = QFileDialog::getExistingDirectory(prtWidget, QLatin1String("Open a Directory with the Objects and Sprites folders from the game maker project"),
                                                       QLatin1String(""),
                                                       QFileDialog::ShowDirsOnly
-                                                      | QFileDialog::DontResolveSymlinks);
+                                                      | QFileDialog::DontUseCustomDirectoryIcons);
     if(dir.isEmpty())
     {
         printf("empty dir");
@@ -172,6 +172,16 @@ void GameMakerObjectImporter::generateTemplates()
     QFileInfoList objectFileInfo = objectDir.entryInfoList();
     int totalObjects =objectFileInfo.size();
 
+    //Progress Bar
+    QProgressDialog *progress = new QProgressDialog(prtWidget);
+    progress->setWindowModality(Qt::ApplicationModal);
+    progress->setLabelText(QLatin1String(""));
+    progress->setCancelButtonText(QLatin1String("Abort"));
+    progress->setMinimum(0);
+    progress->setMaximum(totalObjects);
+    progress->setWindowFlags(Qt::WindowMinMaxButtonsHint);
+    progress->show();
+
     QString projectFilePath = str("");
     unordered_map<string,string> *objectFolderMap = new unordered_map<string,string>();
     bool useObjectFolders = false;
@@ -198,9 +208,6 @@ void GameMakerObjectImporter::generateTemplates()
         mapObjectsToFolders(projectFilePath,objectFolderMap);
     }
 
-    if(useObjectFolders)
-        qDebug()<<"using object folders";
-
     QString undefined = QLatin1String("&lt;undefined&gt;");
 
     QFile *imageCollection = new QFile(rootDir.path().append(QLatin1String("/images.tsx")));
@@ -215,14 +222,6 @@ void GameMakerObjectImporter::generateTemplates()
     int maxWidth = 0;
     int maxHeigth = 0;
 
-    //Progress Bar
-    progress=std::unique_ptr<QProgressDialog>(new QProgressDialog(nullptr));
-    progress->setWindowModality(Qt::WindowModal);
-    progress->setLabelText(QLatin1String("Generating templates..."));
-    progress->setAutoFillBackground(false);
-    progress->setMaximum(objectFileInfo.size());
-    progress->setMinimum(0);
-    progress->setWindowFlags(Qt::WindowMinMaxButtonsHint);
 
     QFile *typesFile = new QFile(typesDir);
     if(!typesFile->open(QIODevice::WriteOnly | QIODevice::Text))
@@ -244,14 +243,12 @@ void GameMakerObjectImporter::generateTemplates()
 
     //Loop through object files
     for (int i = 0; i < totalObjects; ++i) {
+
         progress->setValue(i);
         if(progress->wasCanceled())
             break;
-        QDir* root =new QDir(QLatin1String(""));
+
         QFileInfo fileInfo = objectFileInfo.at(i);
-        QString poth = root->relativeFilePath(fileInfo.filePath());
-        QFile *objectFile = new QFile(poth);
-        delete root;
 
         xml_document<> auxDoc;
         ifstream theFile(fileInfo.filePath().toStdString().c_str());
@@ -281,32 +278,20 @@ void GameMakerObjectImporter::generateTemplates()
         if(spriteName == QLatin1String("<undefined>") || spriteName==undefined || spriteName.isEmpty())
         {
             std::cout<<"\n"<<spriteName.toStdString();
-            objectFile->close();
-            delete objectFile;
             continue;
         }
-
         QFile *spriteFile = findSprite(spriteName,&spriteDir);
 
         if(spriteFile==nullptr){
-            delete objectFile;
             delete spriteFile;
             continue;
         }
 
-        if(!spriteFile->open(QIODevice::ReadOnly | QIODevice::Text ))
-        {
-            std::cout<<"\nError opening sprite file";
-            spriteFile->close();
-            delete objectFile;
-            delete spriteFile;
-            continue;
-        }
-        spriteFile->close();
         QString imageFileDir = imageDir.relativeFilePath(spriteName.append(QLatin1String("_0.png")));
         theFile.close();
-        theFile = ifstream(spriteFile->fileName().toStdString().c_str());
         auxDoc.clear();
+        theFile = ifstream(spriteFile->fileName().toStdString().c_str());
+
         buffer = vector<char>((istreambuf_iterator<char>(theFile)), istreambuf_iterator<char>());
         buffer.push_back('\0');
 
@@ -356,83 +341,83 @@ void GameMakerObjectImporter::generateTemplates()
         //QString templatePoth=templateDir.path().append(QLatin1String("/")).append(objectName).append(QLatin1String(".tx"));
         imageCollectionPath = QDir(templatePoth).relativeFilePath(rootDir.path().append(QLatin1String("/images.tsx")));
         templatePoth = templatePoth.append(str("/").append(objectName).append(str(".tx")));
+        auxDoc.clear();
         templateDir.mkpath(QFileInfo(templatePoth).absolutePath());
-        QFile *templateFile = new QFile(templatePoth);
-
-
-        if(!templateFile->open(QIODevice::WriteOnly | QIODevice::Text ))
+        QFile templateFile(templatePoth);
+        if(true)
         {
-            std::cout<<"\nError creating template file";
-            delete objectFile;
-            delete spriteFile;
-            delete templateFile;
-            continue;
+
+            if(!templateFile.open(QIODevice::WriteOnly | QIODevice::Text ))
+            {
+                std::cout<<"\nError creating template file";
+                delete spriteFile;
+                continue;
+            }
+            templateWriter.setDevice(&templateFile);
+            templateWriter.writeStartDocument();
+
+            templateWriter.writeStartElement(str("template"));
+            templateWriter.writeStartElement(str("tileset"));
+            templateWriter.writeAttribute(str("firstgid"),str("0"));
+            templateWriter.writeAttribute(str("source"),imageCollectionPath);
+            templateWriter.writeEndElement();
+
+            templateWriter.writeStartElement(str("object"));
+            templateWriter.writeAttribute(str("type"),objectName);
+            templateWriter.writeAttribute(str("gid"),QString::number(gid));
+            templateWriter.writeAttribute(str("width"),QString::number(imageWidth));
+            templateWriter.writeAttribute(str("height"),QString::number(imageHeigth));
+            templateWriter.writeEndElement();
+
+            templateWriter.writeStartElement(str("properties"));
+
+            templateWriter.writeStartElement(str("property"));
+            templateWriter.writeAttribute(str("name"),str("offsetX"));
+            templateWriter.writeAttribute(str("type"),str("int"));
+            templateWriter.writeAttribute(str("value"),QString::number(originX));
+            templateWriter.writeEndElement();
+
+            templateWriter.writeStartElement(str("property"));
+            templateWriter.writeAttribute(str("name"),str("originX"));
+            templateWriter.writeAttribute(str("type"),str("int"));
+            templateWriter.writeAttribute(str("value"),QString::number(originX));
+            templateWriter.writeEndElement();
+
+            templateWriter.writeStartElement(str("property"));
+            templateWriter.writeAttribute(str("name"),str("offsetY"));
+            templateWriter.writeAttribute(str("type"),str("int"));
+            templateWriter.writeAttribute(str("value"),QString::number(originY));
+            templateWriter.writeEndElement();
+
+            templateWriter.writeStartElement(str("property"));
+            templateWriter.writeAttribute(str("name"),str("originY"));
+            templateWriter.writeAttribute(str("type"),str("int"));
+            templateWriter.writeAttribute(str("value"),QString::number(originY));
+            templateWriter.writeEndElement();
+
+            templateWriter.writeStartElement(str("property"));
+            templateWriter.writeAttribute(str("name"),str("imageWidth"));
+            templateWriter.writeAttribute(str("type"),str("int"));
+            templateWriter.writeAttribute(str("value"),QString::number(imageWidth));
+            templateWriter.writeEndElement();
+
+            templateWriter.writeStartElement(str("property"));
+            templateWriter.writeAttribute(str("name"),str("imageHeight"));
+            templateWriter.writeAttribute(str("type"),str("int"));
+            templateWriter.writeAttribute(str("value"),QString::number(imageHeigth));
+            templateWriter.writeEndElement();
+
+            templateWriter.writeStartElement(str("property"));
+            templateWriter.writeAttribute(str("name"),str("code"));
+            templateWriter.writeAttribute(str("type"),str("string"));
+            templateWriter.writeAttribute(str("value"),str(""));
+            templateWriter.writeEndElement();
+
+            templateWriter.writeEndElement();
+            templateWriter.writeEndDocument();
+
+            templateFile.close();
         }
-        templateWriter.setDevice(templateFile);
-        templateWriter.writeStartDocument();
-
-        templateWriter.writeStartElement(str("template"));
-        templateWriter.writeStartElement(str("tileset"));
-        templateWriter.writeAttribute(str("firstgid"),str("0"));
-        templateWriter.writeAttribute(str("source"),imageCollectionPath);
-        templateWriter.writeEndElement();
-
-        templateWriter.writeStartElement(str("object"));
-        templateWriter.writeAttribute(str("type"),objectName);
-        templateWriter.writeAttribute(str("gid"),QString::number(gid));
-        templateWriter.writeAttribute(str("width"),QString::number(imageWidth));
-        templateWriter.writeAttribute(str("height"),QString::number(imageHeigth));
-        templateWriter.writeEndElement();
-
-        templateWriter.writeStartElement(str("properties"));
-
-        templateWriter.writeStartElement(str("property"));
-        templateWriter.writeAttribute(str("name"),str("offsetX"));
-        templateWriter.writeAttribute(str("type"),str("int"));
-        templateWriter.writeAttribute(str("value"),QString::number(originX));
-        templateWriter.writeEndElement();
-
-        templateWriter.writeStartElement(str("property"));
-        templateWriter.writeAttribute(str("name"),str("originX"));
-        templateWriter.writeAttribute(str("type"),str("int"));
-        templateWriter.writeAttribute(str("value"),QString::number(originX));
-        templateWriter.writeEndElement();
-
-        templateWriter.writeStartElement(str("property"));
-        templateWriter.writeAttribute(str("name"),str("offsetY"));
-        templateWriter.writeAttribute(str("type"),str("int"));
-        templateWriter.writeAttribute(str("value"),QString::number(originY));
-        templateWriter.writeEndElement();
-
-        templateWriter.writeStartElement(str("property"));
-        templateWriter.writeAttribute(str("name"),str("originY"));
-        templateWriter.writeAttribute(str("type"),str("int"));
-        templateWriter.writeAttribute(str("value"),QString::number(originY));
-        templateWriter.writeEndElement();
-
-        templateWriter.writeStartElement(str("property"));
-        templateWriter.writeAttribute(str("name"),str("imageWidth"));
-        templateWriter.writeAttribute(str("type"),str("int"));
-        templateWriter.writeAttribute(str("value"),QString::number(imageWidth));
-        templateWriter.writeEndElement();
-
-        templateWriter.writeStartElement(str("property"));
-        templateWriter.writeAttribute(str("name"),str("imageHeight"));
-        templateWriter.writeAttribute(str("type"),str("int"));
-        templateWriter.writeAttribute(str("value"),QString::number(imageHeigth));
-        templateWriter.writeEndElement();
-
-        templateWriter.writeStartElement(str("property"));
-        templateWriter.writeAttribute(str("name"),str("code"));
-        templateWriter.writeAttribute(str("type"),str("string"));
-        templateWriter.writeAttribute(str("value"),str(""));
-        templateWriter.writeEndElement();
-
-        templateWriter.writeEndElement();
-        templateWriter.writeEndDocument();
-
-        templateFile->close();
-        delete templateFile;
 
         typesWriter.writeStartElement(str("objecttype"));
         typesWriter.writeAttribute(str("name"),objectName);
@@ -482,7 +467,6 @@ void GameMakerObjectImporter::generateTemplates()
 
         typesWriter.writeEndElement();
 
-        delete objectFile;
         delete spriteFile;
 
      }
@@ -597,22 +581,21 @@ void GameMakerObjectImporter::generateTemplates()
     delete imageList;
     delete objectFolderMap;
     progress->close();
+    delete progress;
+
 }
 
 QFile* GameMakerObjectImporter::findSprite(QString filename, QDir* dir)
 {
-    dir->setFilter(QDir::Files | QDir::Hidden | QDir::NoSymLinks);
-    dir->setSorting(QDir::Size | QDir::Reversed);
+    QString fname = filename.append(QLatin1String(".sprite.gmx"));
+    QFile * newFile = new QFile(dir->filePath(fname));
+    if(newFile->exists())
+        return newFile;
+    else
+    {
+        delete newFile;
+    }
 
-    QFileInfoList objectFileInfo = dir->entryInfoList();
-    for (int i = 0; i < objectFileInfo.size(); ++i) {
-        QFileInfo fileInfo = objectFileInfo.at(i);
-        if(dir->relativeFilePath(fileInfo.filePath()).chopped(11)==filename)
-        {
-            QString poth = fileInfo.filePath();
-            return new QFile(poth);
-        }
-     }
     return nullptr;
 }
 int GameMakerObjectImporter::addImage(QString &fileDir,int width, int heigth, QVector<imageEntry*> *list)

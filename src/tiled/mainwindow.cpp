@@ -1017,8 +1017,8 @@ void MainWindow::run()
 
 void MainWindow::generateTemplates()
 {
-    std::unique_ptr<GameMakerObjectImporter> helper(new GameMakerObjectImporter());
-    helper->generateTemplatesInThread();
+    std::unique_ptr<GameMakerObjectImporter> helper(new GameMakerObjectImporter(this));
+    helper->generateTemplates();
 }
 
 void MainWindow::gameClosed()
