@@ -185,6 +185,7 @@
      <string>Megamix Engine</string>
     </property>
     <addaction name="actionRun"/>
+    <addaction name="actionAddMusic"/>
     <addaction name="actionGenerate_Templates"/>
    </widget>
    <addaction name="menuMap"/>
@@ -681,6 +682,11 @@
   <action name="actionAutoMapCRule">
    <property name="text">
     <string>New AutoMap Object Mapping Rule</string>
+   </property>
+  </action>
+  <action name="actionAddMusic">
+   <property name="text">
+    <string>Add Music To Creation Code</string>
    </property>
   </action>
  </widget>

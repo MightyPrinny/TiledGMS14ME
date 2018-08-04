@@ -31,6 +31,7 @@
 #include "tmxmapformat.h"
 #include "tile.h"
 #include "tilelayer.h"
+#include "preferences.h"
 
 #include <QApplication>
 #include <QClipboard>
@@ -270,8 +271,14 @@ void ClipboardManager::pasteObjectGroup(const ObjectGroup *objectGroup,
 
         MapObject *objectClone = mapObject->clone();
         objectClone->resetId();
-        int tw = mapDocument->map()->tileWidth();
-        int th = mapDocument->map()->tileHeight();
+        Preferences *prefs = Preferences::instance();
+        int tw = prefs->snapGrid().width();
+        int th = prefs->snapGrid().height();
+        if(!prefs->snapToGrid() && !prefs->snapToPixels())
+        {
+            tw = 1;
+            th = 1;
+        }
 
 
         if(objectClone->isTileObject())

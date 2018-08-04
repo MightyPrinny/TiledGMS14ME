@@ -93,8 +93,8 @@
 #include <QUndoGroup>
 #include <QUndoStack>
 #include <QUndoView>
-#include <iostream>>
 #include <QString>
+#include "mmeaddmusic.h"
 
 #ifdef Q_OS_WIN
 #include <QtPlatformHeaders\QWindowsWindowFunctions>
@@ -395,10 +395,15 @@ MainWindow::MainWindow(QWidget *parent, Qt::WindowFlags flags)
     connect(mUi->actionDelete, &QAction::triggered, this, &MainWindow::delete_);
     connect(mUi->actionPreferences, &QAction::triggered, this, &MainWindow::openPreferences);
 
+    menuBar()->insertMenu(mUi->menuEdit->menuAction(), mUi->menuMap);
+    menuBar()->insertMenu(mUi->menuEdit->menuAction(),mUi->menuMegamix_Engine);
     connect(mUi->actionRun, &QAction::triggered,
             this, &MainWindow::run);
     connect(mUi->actionGenerate_Templates, &QAction::triggered,
             this, &MainWindow::generateTemplates);
+    connect(mUi->actionAddMusic, &QAction::triggered,
+            this, &MainWindow::addMusicToCreationCode);
+
 
     connect(mUi->actionShowGrid, &QAction::toggled,
             preferences, &Preferences::setShowGrid);
@@ -1021,6 +1026,59 @@ void MainWindow::generateTemplates()
     helper->generateTemplates();
 }
 
+void MainWindow::addMusicToCreationCode()
+{
+    if(this->mDocument->type() == MapDocument::MapDocumentType)
+    {
+        MusicInfo minfo{
+            QString(QLatin1String("nothing.nsf")),
+                    QString(QLatin1String("VGM")),
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+        };
+        MMEAddMusic* dialog = new MMEAddMusic(nullptr,&minfo);
+        dialog->exec();
+        delete dialog;
+        QString code = QString(QLatin1String(""));
+        MapDocument *mDoc = dynamic_cast<MapDocument*>(this->mDocument);
+        QVariant aux = mDoc->map()->inheritedProperty(QString(QLatin1String("code")));
+        if(!aux.isValid())
+        {
+            mDoc->map()->setProperty(QString(QLatin1String("code")),QVariant(QLatin1String("")));
+        }
+        else
+        {
+            code = aux.toString().append(QLatin1String("\n"));
+        }
+
+        if(minfo.ok)
+        {
+            QString lup;
+            if(minfo.loops)
+                lup = QString(QLatin1String("true"));
+            else
+                lup = QString(QLatin1String("false"));
+            code = code.append( QString(QLatin1String("playMusic(\""))
+                    .append(minfo.filename)
+                    .append(QLatin1String("\",\"")).append(minfo.type)
+                    .append(QLatin1String("\",")).append(QString::number(minfo.track))
+                    .append(QLatin1String(",")).append(QString::number(minfo.loopPoint))
+                    .append(QLatin1String(",")).append(QString::number(minfo.duration))
+                    .append(QLatin1String(",")).append(lup)
+                    .append(QLatin1String(",")).append(QString::number(minfo.volume))
+                    .append(QLatin1String(");")));
+            mDoc->map()->setProperty(QString(QLatin1String("code")),QVariant(code));
+            mDoc->propertiesChanged(mDoc->map());
+
+        }
+
+    }
+}
+
 void MainWindow::gameClosed()
 {
     delete gameProcess;
@@ -1459,6 +1517,7 @@ void MainWindow::updateViewsAndToolbarsMenu()
     mViewsAndToolbarsMenu->addAction(mConsoleDock->toggleViewAction());
 
     if (Editor *editor = mDocumentManager->currentEditor()) {
+        mUi->actionRun->setVisible(true);
         mViewsAndToolbarsMenu->addSeparator();
         const auto dockWidgets = editor->dockWidgets();
         for (auto dockWidget : dockWidgets)
@@ -1502,6 +1561,8 @@ void MainWindow::updateActions()
     mUi->actionPasteInPlace->setEnabled(standardActions & Editor::PasteInPlaceAction);
     mUi->actionDelete->setEnabled(standardActions & Editor::DeleteAction);
 
+    mUi->actionRun->setVisible(mapDocument);
+    mUi->actionAddMusic->setVisible(mapDocument);
     mUi->menuMap->menuAction()->setVisible(mapDocument);
     mUi->actionAddExternalTileset->setEnabled(mapDocument);
     mUi->actionResizeMap->setEnabled(mapDocument);

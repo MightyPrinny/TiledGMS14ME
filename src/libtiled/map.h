@@ -294,6 +294,7 @@ public:
      * Returns the list of top-level layers of this map.
      */
     const QList<Layer*> &layers() const { return mLayers; }
+    QList<Layer*> *layersNoConst() { return &mLayers; }
 
     LayerIteratorHelper allLayers(int layerTypes = Layer::AnyLayerType) const;
     LayerIteratorHelper tileLayers() const;

@@ -110,6 +110,7 @@ public slots:
     void newAutomapOMRule();
 private slots:
     void newMap();
+    void addMusicToCreationCode();
     void openFileDialog();
     bool saveFile();
     bool saveFileAs();

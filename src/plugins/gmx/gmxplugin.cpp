@@ -34,6 +34,7 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QDirIterator>
+#include "layer.h"
 
 #include <QRegularExpression>
 #include <QXmlStreamWriter>
@@ -291,13 +292,13 @@ static bool lesThanLayer(Layer *lay1, Layer *lay2)
     int depth1 = 9999999;
     int depth2 = depth1;
 
-    QVariant aux = lay1->inheritedProperty("depth");
+    QVariant aux = lay1->inheritedProperty(QString("depth"));
     if(aux.isValid())
         depth1=aux.toInt();
-    aux = lay2->inheritedProperty("depth");
+    aux = lay2->inheritedProperty(QString("depth"));
     if(aux.isValid())
         depth2 = aux.toInt();
-    return depth1<depth2;
+    return depth1>depth2;
 }
 
 Tiled::Map *GmxPlugin::read(const QString &fileName)
@@ -445,6 +446,7 @@ Tiled::Map *GmxPlugin::read(const QString &fileName)
     if(instance)
     {
         objects = new Tiled::ObjectGroup(QString("objects"),0,0);
+        objects->setProperty(QString("depth"),QVariant(0));
         unordered_map<string,string> *templateMap = new unordered_map<string,string> ();
         mapTemplates(templateMap,QDir(settings.templatePath.append(QString("/"))));
         //Add view object if views are enabled
@@ -560,8 +562,11 @@ Tiled::Map *GmxPlugin::read(const QString &fileName)
         delete templateMap;
     }
 
-    QList<Layer*> mLayers = newMap->layers();
-    std::sort(mLayers.begin(),mLayers.end(),lesThanLayer);
+    QList<Layer*> *mLayers = newMap->layersNoConst();
+    if(!mLayers->isEmpty())
+    {
+        std::sort(mLayers->begin(),mLayers->end(),lesThanLayer);
+    }
     delete mapLayers;
     delete tilesets;
     return newMap;
@@ -725,7 +730,13 @@ bool GmxPlugin::write(const Map *map, const QString &fileName)
     iterator.toBack();
 
     QVector<AnimationLayer> *animationLayers = new QVector<AnimationLayer>();
-    int lastAnimLayerDepth = 2000000;
+    int animStartLayer = 2000000;
+    {
+        QVariant auxP = map->inheritedProperty(QString("animationLayer"));
+        if(auxP.isValid())
+            animStartLayer= auxP.toInt();
+    }
+    int lastAnimLayerDepth = animStartLayer;
     int depthOff = 0;
     int layerCount = 0;
     while (const Layer *layer = iterator.previous()) {
@@ -750,7 +761,7 @@ bool GmxPlugin::write(const Map *map, const QString &fileName)
                         {
                             if(tileset->isCollection())
                                 continue;
-                            int animLayer = 2000000;
+                            int animLayer = animStartLayer;
                             int animLength = tile->frames().size();
                             QVariant optionalLayer = tile->inheritedProperty(QLatin1String("animLayer"));
                             if(optionalLayer.isValid())
