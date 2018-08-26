@@ -102,7 +102,7 @@ static QString colorToOLE(QColor &c)
 static void write(char *s, QIODevice *device,QTextCodec* codec)
 {
     if (device)
-            device->write(s, strlen(s));
+            device->write(s, qint64(strlen(s)));
     else
         qWarning("QXmlStreamWriter: No device");
 }
@@ -217,7 +217,7 @@ static void mapTemplates(std::unordered_map<std::string,std::string> *map, QDir 
         QFileInfo info = it.fileInfo();
         if(info.isFile())
         {
-            map->emplace(make_pair(info.baseName().toStdString(),info.filePath().toStdString()));
+            map->emplace(make_pair(info.baseName().toStdString(),info.absoluteFilePath().toStdString()));
         }
         it.next();
     }
@@ -274,7 +274,7 @@ static SharedTileset tilesetWithName(QVector<SharedTileset> &tilesets, QString b
         }
     }
     SharedTileset newTileset = Tileset::create(bgName,map->tileWidth(),map->tileHeight(),0,0);
-    if(newTileset->loadFromImage(imageDir.filePath(bgName.append(".png"))))
+    if(newTileset->loadFromImage(imageDir.absoluteFilePath(bgName.append(".png"))))
     {
         tilesets.append(newTileset);
     }
@@ -347,7 +347,7 @@ Tiled::Map *GmxPlugin::read(const QString &fileName)
     int bgColor = QString(root_node->first_node("colour")->value()).toInt();
     bool useBgColor = QString(root_node->first_node("showcolour")->value()).toInt() != 0;
 
-    Map *newMap = new Map(Map::Orthogonal,mapWidth,mapHeight,tileWidth,tileHeight,0);
+    Map *newMap = new Map(Map::Orthogonal,mapWidth,mapHeight,tileWidth,tileHeight,false);
     newMap->setProperty("code",QVariant(root_node->first_node("code")->value()));
     newMap->setQuadWidth(settings.quadWidth);
     newMap->setQuadHeight(settings.quadHeigth);
@@ -396,8 +396,8 @@ Tiled::Map *GmxPlugin::read(const QString &fileName)
                 y-=tileHeight;
             int xoff = x%tileWidth;
             int yoff = y%tileHeight;
-            x = floor(x/tileWidth)*tileWidth;
-            y = floor(y/tileHeight)*tileHeight;
+            x = int(floor(x/tileWidth)*tileWidth);
+            y = int(floor(y/tileHeight)*tileHeight);
             int depth = QString(tile->first_attribute("depth")->value()).toInt();
             QString bgName = QString(tile->first_attribute("bgName")->value());
             TileLayer *layer = tileLayerAtDepth(*mapLayers,depth,xoff, yoff,newMap);
@@ -424,7 +424,7 @@ Tiled::Map *GmxPlugin::read(const QString &fileName)
                         ncell.setFlippedHorizontally(true);
                     if(scaleY==-1)
                         ncell.setFlippedVertically(true);
-                    layer->setCell(floor(x/tileWidth)+ht,floor(y/tileHeight)+vt,ncell);
+                    layer->setCell(int(floor(x/tileWidth))+ht,int(floor(y/tileHeight))+vt,ncell);
                 }
             }
 
@@ -490,10 +490,11 @@ Tiled::Map *GmxPlugin::read(const QString &fileName)
         QDir *imagesPath = new QDir(settings.templatePath);
         imagesPath->cdUp();
         SharedTileset imagesTileset = TilesetManager::instance()->loadTileset(imagesPath->filePath(QString("images.tsx")));
+
         if(imagesTileset.get()!=nullptr)
             newMap->addTileset(imagesTileset);
         delete imagesPath;
-        for(instance; instance; instance=instance->next_sibling())
+        for(; instance ; instance=instance->next_sibling())
         {
             int x = QString(instance->first_attribute("x")->value()).toInt();
 
@@ -525,11 +526,11 @@ Tiled::Map *GmxPlugin::read(const QString &fileName)
                 double scaleY = QString(instance->first_attribute("scaleY")->value()).toDouble();
                 if(scaleX<0)
                 {
-                    originX = templ->object()->width() - originX;
+                    originX = int(templ->object()->width() - originX);
                 }
                 if(scaleY<0)
                 {
-                    originY = templ->object()->height() - originY;
+                    originY = int(templ->object()->height() - originY);
                 }
                 QPointF origin = QPointF(-originX*abs(scaleX),-originY*abs(scaleY));
                 if(templ->object()->isTileObject())
@@ -539,17 +540,23 @@ Tiled::Map *GmxPlugin::read(const QString &fileName)
                 pos += transform.map(origin);
 
                 MapObject *obj = new MapObject(QString(""),objName,pos,QSizeF(templ->object()->width()*abs(scaleX),templ->object()->height()*abs(scaleY)));
-                obj->setObjectTemplate(templ);
+
+                obj->setProperties(templ->object()->properties());
+                obj->setCell(templ->object()->cell());
                 obj->setProperty(QString("code"),code);
-                obj->syncWithTemplate();
+
                 if(scaleX<0)
                     obj->flip(FlipHorizontally,pos);
                 if(scaleY<0)
                     obj->flip(FlipVertically,pos);
                 obj->setRotation(rotation);
-                obj->setWidth(templ->object()->width()*abs(scaleX));
-                obj->setHeight(templ->object()->height()*abs(scaleY));
+
+                obj->setSize(QSizeF(templ->object()->width()*abs(scaleX),templ->object()->height()*abs(scaleY)));
+
+
                 objects->addObject(obj);
+
+
             }
             else
             {
@@ -558,6 +565,7 @@ Tiled::Map *GmxPlugin::read(const QString &fileName)
             }
         }
         newMap->addLayer(objects);
+
         qDebug()<<"Done";
         delete templateMap;
     }
@@ -567,8 +575,10 @@ Tiled::Map *GmxPlugin::read(const QString &fileName)
     {
         std::sort(mLayers->begin(),mLayers->end(),lesThanLayer);
     }
+
     delete mapLayers;
     delete tilesets;
+
     return newMap;
 
 }
