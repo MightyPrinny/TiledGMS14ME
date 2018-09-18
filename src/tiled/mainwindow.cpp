@@ -1252,9 +1252,12 @@ bool MainWindow::newTileset(const QString &path)
     NewTilesetDialog newTileset(this);
     newTileset.setImagePath(startLocation);
 
+
     SharedTileset tileset = newTileset.createTileset();
     if (!tileset)
         return false;
+    tileset->setProperty(QLatin1String("animationLayer"),QVariant(2000000));
+
 
     if (tileset->imageSource().isLocalFile())
         prefs->setLastPath(Preferences::ImageFile, tileset->imageSource().toLocalFile());

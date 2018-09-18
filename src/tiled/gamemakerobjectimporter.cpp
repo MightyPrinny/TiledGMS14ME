@@ -244,19 +244,26 @@ void GameMakerObjectImporter::generateTemplates()
 
     //Loop through object files
     for (int i = 0; i < totalObjects; ++i) {
-
         progress->setValue(i);
         if(progress->wasCanceled())
             break;
 
         QFileInfo fileInfo = objectFileInfo.at(i);
 
+
         xml_document<> auxDoc;
         ifstream theFile(fileInfo.filePath().toStdString().c_str());
         vector<char> buffer((istreambuf_iterator<char>(theFile)), istreambuf_iterator<char>());
         buffer.push_back('\0');
 
-        auxDoc.parse<0>(&buffer[0]);
+        try {
+            auxDoc.parse<0>(&buffer[0]);
+        } catch (parse_error e) {
+            qDebug()<<"error parsing object file";
+            continue;
+        }
+
+
         if(!auxDoc.first_node("object"))
             qDebug()<<"critical error";
         xml_node<> *auxNode = auxDoc.first_node("object")->first_node("spriteName");
@@ -274,17 +281,18 @@ void GameMakerObjectImporter::generateTemplates()
         int originX=0;
         int originY=0;
         int imageWidth=1;
+
         int imageHeigth=1;
 
         if(spriteName == QLatin1String("<undefined>") || spriteName==undefined || spriteName.isEmpty())
         {
-            std::cout<<"\n"<<spriteName.toStdString();
+            qDebug()<<"Object doesn't have a sprite, skipping...";
+            auxDoc.clear();
             continue;
         }
         QFile *spriteFile = findSprite(spriteName,&spriteDir);
 
         if(spriteFile==nullptr){
-            delete spriteFile;
             continue;
         }
         QString spr = QString(spriteName);
@@ -296,8 +304,14 @@ void GameMakerObjectImporter::generateTemplates()
 
         buffer = vector<char>((istreambuf_iterator<char>(theFile)), istreambuf_iterator<char>());
         buffer.push_back('\0');
+        try {
+            auxDoc.parse<0>(&buffer[0]);
+        } catch (parse_error e) {
+            qDebug()<<"Error parsing sprite file";
+            delete spriteFile;
+            continue;
+        }
 
-        auxDoc.parse<0>(&buffer[0]);
         {
             xml_node<> *spriteNode = auxDoc.first_node("sprite");
             if(spriteNode)
@@ -351,7 +365,7 @@ void GameMakerObjectImporter::generateTemplates()
 
             if(!templateFile.open(QIODevice::WriteOnly | QIODevice::Text ))
             {
-                std::cout<<"\nError creating template file";
+                qDebug()<<"\nError creating template file";
                 delete spriteFile;
                 continue;
             }
@@ -470,8 +484,8 @@ void GameMakerObjectImporter::generateTemplates()
         typesWriter.writeEndElement();
 
         delete spriteFile;
-
      }
+
 
     typesWriter.writeStartElement(str("objecttype"));
     typesWriter.writeAttribute(str("name"),str("view"));

@@ -206,6 +206,22 @@ static int indexOfAnim(int length, QVector<int> &speeds, QVector<AnimationLayer>
     return -1;
 }
 
+static int indexOfAnim(int depth,int length, QVector<int> &speeds, QVector<AnimationLayer>* layers )
+{
+    if(layers->isEmpty())
+        return -1;
+    int len = layers->size();
+    for (int i = 0; i<len; ++i)
+    {
+        if(layers->at(i).depth==depth&&layers->at(i).animLength==length && layers->at(i).animSpeeds == speeds)
+        {
+            return i;
+        }
+
+    }
+    return -1;
+}
+
 static void mapTemplates(std::unordered_map<std::string,std::string> *map, QDir &root )
 {
     QFileInfoList fileInfoList = root.entryInfoList();
@@ -741,8 +757,9 @@ bool GmxPlugin::write(const Map *map, const QString &fileName)
 
     QVector<AnimationLayer> *animationLayers = new QVector<AnimationLayer>();
     int animStartLayer = 2000000;
+
     {
-        QVariant auxP = map->inheritedProperty(QString("animationLayer"));
+        QVariant auxP = map->property(QString("animationLayer"));
         if(auxP.isValid())
             animStartLayer= auxP.toInt();
     }
@@ -773,35 +790,42 @@ bool GmxPlugin::write(const Map *map, const QString &fileName)
                                 continue;
                             int animLayer = animStartLayer;
                             int animLength = tile->frames().size();
-                            QVariant optionalLayer = tile->inheritedProperty(QLatin1String("animLayer"));
-                            if(optionalLayer.isValid())
+
+                            QVector<int> animSpeeds = QVector<int>();
+                            for(int j=0;j<animLength;++j)
                             {
-                                animLayer = optionalLayer.toInt();
+                                animSpeeds.append(tile->frames().at(j).duration);
+                            }
+                            bool customDepth = false;
+                            {
+                                QVariant prp = tileset->inheritedProperty(QLatin1String("animationLayer"));
+                                if(prp.isValid()){
+                                    animLayer=prp.toInt();
+                                    customDepth=true;
+                                }
+
+                            }
+                            int layerID = -1;
+                            if(!customDepth)
+                                layerID = indexOfAnim(animLength,animSpeeds,animationLayers);
+                            else
+                                layerID = indexOfAnim(animLayer,animLength,animSpeeds,animationLayers);
+                            if(layerID!=-1)
+                            {
+                                animLayer = animationLayers->at(layerID).depth;
                             }
                             else
                             {
-                                QVector<int> animSpeeds = QVector<int>();
-                                for(int j=0;j<animLength;++j)
-                                {
-                                    animSpeeds.append(tile->frames().at(j).duration);
-                                }
-                                int layerID = indexOfAnim(animLength,animSpeeds,animationLayers);
-                                if(layerID!=-1)
-                                {
-                                    animLayer = animationLayers->at(layerID).depth;
-                                }
-                                else
-                                {
-                                    AnimationLayer newLayer = {
-                                        (lastAnimLayerDepth+1),
-                                        animSpeeds,
-                                        animLength
-                                    };
-                                    lastAnimLayerDepth += animLength;
-                                    animLayer = newLayer.depth;
-                                    animationLayers->append(newLayer);
-                                }
+                                AnimationLayer newLayer = {
+                                    (lastAnimLayerDepth),
+                                    animSpeeds,
+                                    animLength
+                                };
+                                lastAnimLayerDepth += animLength;
+                                animLayer = newLayer.depth;
+                                animationLayers->append(newLayer);
                             }
+
 
                             //Add tiles
                             int pixelX = x * map->tileWidth();
@@ -822,12 +846,19 @@ bool GmxPlugin::write(const Map *map, const QString &fileName)
                             int xo = 0;
                             int yo = 0;
 
-                            bgName = tileset->name();
+                            if (tileset->isCollection()) {
+                                bgName = QFileInfo(tile->imageSource().path()).baseName();
+
+                            }
+                            else
+                            {
+                                bgName = tileset->name();
+                            }
 
                             for(int t =0; t<animLength;t++)
                             {
                                 int xInTilesetGrid = tile->frames().at(t).tileId % tileset->columnCount();
-                                int yInTilesetGrid = (int)(tile->frames().at(t).tileId / tileset->columnCount());
+                                int yInTilesetGrid = int(tile->frames().at(t).tileId / tileset->columnCount());
 
                                 xo = tileset->margin() + (tileset->tileSpacing() + tileset->tileWidth()) * xInTilesetGrid;
                                 yo = tileset->margin() + (tileset->tileSpacing() + tileset->tileHeight()) * yInTilesetGrid;
@@ -1125,7 +1156,7 @@ bool GmxPlugin::write(const Map *map, const QString &fileName)
 
         for(int frame = 0; frame <animLen ; frame++)
         {
-            int animSpeed = (animationLayers->at(anim).animSpeeds.at(frame) * 0.001)*60;
+            int animSpeed = int(round(animationLayers->at(anim).animSpeeds.at(frame) * 0.001)*60);
             cCode.append(QString("\nanimTime[").append(QString::number(frame)).append(QString("] = ").append(QString::number(animSpeed)).append(QString(";"))));
         }
 

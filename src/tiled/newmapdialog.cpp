@@ -163,6 +163,8 @@ MapDocumentPtr NewMapDialog::createMap()
 
     map->setLayerDataFormat(layerFormat);
     map->setRenderOrder(renderOrder);
+    map->setProperty(QLatin1String("animationLayer"),QVariant(2000000));
+    map->setProperty(QLatin1String("code"),QVariant(QLatin1String("")));
 
     const size_t gigabyte = 1073741824u;
     const size_t memory = size_t(mapWidth) * size_t(mapHeight) * sizeof(Cell);
