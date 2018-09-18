@@ -1256,7 +1256,6 @@ bool MainWindow::newTileset(const QString &path)
     SharedTileset tileset = newTileset.createTileset();
     if (!tileset)
         return false;
-    tileset->setProperty(QLatin1String("animationLayer"),QVariant(2000000));
 
 
     if (tileset->imageSource().isLocalFile())

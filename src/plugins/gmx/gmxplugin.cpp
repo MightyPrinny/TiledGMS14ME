@@ -806,6 +806,7 @@ bool GmxPlugin::write(const Map *map, const QString &fileName)
 
                             }
                             int layerID = -1;
+
                             if(!customDepth)
                                 layerID = indexOfAnim(animLength,animSpeeds,animationLayers);
                             else
@@ -816,14 +817,27 @@ bool GmxPlugin::write(const Map *map, const QString &fileName)
                             }
                             else
                             {
-                                AnimationLayer newLayer = {
-                                    (lastAnimLayerDepth),
-                                    animSpeeds,
-                                    animLength
-                                };
-                                lastAnimLayerDepth += animLength;
-                                animLayer = newLayer.depth;
-                                animationLayers->append(newLayer);
+                                if(!customDepth)
+                                {
+                                    AnimationLayer newLayer = {
+                                        (lastAnimLayerDepth),
+                                        animSpeeds,
+                                        animLength
+                                    };
+                                    lastAnimLayerDepth += animLength;
+                                    animLayer = newLayer.depth;
+                                    animationLayers->append(newLayer);
+                                }
+                                else
+                                {
+                                    AnimationLayer newLayer = {
+                                        (animLayer),
+                                        animSpeeds,
+                                        animLength
+                                    };
+
+                                    animationLayers->append(newLayer);
+                                }
                             }
 
 
@@ -1156,7 +1170,7 @@ bool GmxPlugin::write(const Map *map, const QString &fileName)
 
         for(int frame = 0; frame <animLen ; frame++)
         {
-            int animSpeed = int(round(animationLayers->at(anim).animSpeeds.at(frame) * 0.001)*60);
+            int animSpeed = int(round(animationLayers->at(anim).animSpeeds.at(frame) * 0.001*60));
             cCode.append(QString("\nanimTime[").append(QString::number(frame)).append(QString("] = ").append(QString::number(animSpeed)).append(QString(";"))));
         }
 
