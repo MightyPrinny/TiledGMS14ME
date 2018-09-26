@@ -156,12 +156,12 @@ public:
     /**
      * Sets the position of this object.
      */
-    void MapObject::setPosition(const QPointF &pos)
+    void setPosition(const QPointF &pos)
     {
         mPos=pos;
     }
 
-    const QPointF MapObject::position() const
+    const QPointF position() const
     {
         return mPos;
     }

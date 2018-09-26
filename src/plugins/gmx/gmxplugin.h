@@ -22,6 +22,9 @@
 
 #include "mapformat.h"
 #include "gmx_global.h"
+#include <QIODevice>
+#include <QDir>
+#include <unordered_map>
 
 namespace Gmx {
 
@@ -33,6 +36,8 @@ class GMXSHARED_EXPORT GmxPlugin : public Tiled::MapFormat
 
 public:
     GmxPlugin();
+    void writeAttribute(QString &qualifiedName, QString &value, QIODevice* d, QTextCodec* codec);
+    static void mapTemplates(std::unordered_map<std::string,std::string> *map, QDir &root );
     Tiled::Map *read(const QString &fileName) override;
     bool supportsFile(const QString &fileName) const override;
     bool write(const Tiled::Map *map, const QString &fileName) override;

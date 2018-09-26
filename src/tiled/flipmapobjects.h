@@ -34,7 +34,7 @@ class MapDocument;
 class FlipMapObjects : public QUndoCommand
 {
 public:
-    FlipMapObjects::FlipMapObjects();
+    FlipMapObjects();
     FlipMapObjects(MapDocument *mapDocument,
                    const QList<MapObject *> &mapObjects,
                    FlipDirection flipDirection);

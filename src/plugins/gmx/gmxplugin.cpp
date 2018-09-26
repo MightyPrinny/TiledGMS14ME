@@ -50,6 +50,7 @@
 #include <QFileDialog>
 #include <string.h>
 #include <unordered_map>
+#include <qmath.h>
 
 #include "roomimporterdialog.h"
 
@@ -99,7 +100,7 @@ static QString colorToOLE(QColor &c)
 {
     return toString(c.red() + (c.green() * 256) + (c.blue() * 256 * 256));
 }
-static void write(char *s, QIODevice *device,QTextCodec* codec)
+static void wrt(char *s, QIODevice *device,QTextCodec* codec)
 {
     if (device)
             device->write(s, qint64(strlen(s)));
@@ -107,7 +108,7 @@ static void write(char *s, QIODevice *device,QTextCodec* codec)
         qWarning("QXmlStreamWriter: No device");
 }
 
-static void write(QString &s,QIODevice *device,QTextCodec* codec)
+static void wrt(QString &s,QIODevice *device,QTextCodec* codec)
 {
     QTextEncoder* encoder = codec->makeEncoder();
     const char *c =s.toStdString().c_str();
@@ -148,15 +149,6 @@ static QString getEscaped(const QString &s, bool escapeWhitespace)
         }
     }
     return escaped;
-}
-static void writeAttribute(QString &qualifiedName, QString &value, QIODevice* d, QTextCodec* codec)
-{
-    write(" ",d,codec);
-    write(qualifiedName,d,codec);
-    write("=\"",d,codec);
-    QString escaped = getEscaped(value, true);
-    write(escaped,d,codec);
-    write("\"",d,codec);
 }
 
 
@@ -222,7 +214,13 @@ static int indexOfAnim(int depth,int length, QVector<int> &speeds, QVector<Anima
     return -1;
 }
 
-static void mapTemplates(std::unordered_map<std::string,std::string> *map, QDir &root )
+
+
+GmxPlugin::GmxPlugin()
+{
+}
+
+void GmxPlugin::mapTemplates(std::unordered_map<std::string,std::string> *map, QDir &root )
 {
     QFileInfoList fileInfoList = root.entryInfoList();
     qDebug()<<root.path();
@@ -239,10 +237,6 @@ static void mapTemplates(std::unordered_map<std::string,std::string> *map, QDir 
     }
 }
 
-
-GmxPlugin::GmxPlugin()
-{
-}
 
 static TileLayer* tileLayerAtDepth(QVector<TileLayer*> &layers, int depth,int xo, int yo, Map *map)
 {
@@ -315,6 +309,16 @@ static bool lesThanLayer(Layer *lay1, Layer *lay2)
     if(aux.isValid())
         depth2 = aux.toInt();
     return depth1>depth2;
+}
+
+void GmxPlugin::writeAttribute(QString &qualifiedName, QString &value, QIODevice* d, QTextCodec* codec)
+{
+    wrt(" ",d,codec);
+    wrt(qualifiedName,d,codec);
+    wrt("=\"",d,codec);
+    QString escaped = getEscaped(value, true);
+    wrt(escaped,d,codec);
+    wrt("\"",d,codec);
 }
 
 Tiled::Map *GmxPlugin::read(const QString &fileName)
@@ -464,7 +468,8 @@ Tiled::Map *GmxPlugin::read(const QString &fileName)
         objects = new Tiled::ObjectGroup(QString("objects"),0,0);
         objects->setProperty(QString("depth"),QVariant(0));
         unordered_map<string,string> *templateMap = new unordered_map<string,string> ();
-        mapTemplates(templateMap,QDir(settings.templatePath.append(QString("/"))));
+        QDir dir = QDir(settings.templatePath.append(QString("/")));
+        GmxPlugin::mapTemplates(templateMap,dir);
         //Add view object if views are enabled
         if(root_node->first_node("enableViews"))
         {
@@ -576,7 +581,8 @@ Tiled::Map *GmxPlugin::read(const QString &fileName)
             }
             else
             {
-                qDebug()<<QString("Bad template or file doesn't exist: ").append(tempath).toStdString().c_str();
+                qDebug()<<QString("Bad template or file doesn't exist: ").append(objName).toStdString().c_str();
+                qDebug()<<tempath;
                 continue;
             }
         }
@@ -1140,7 +1146,9 @@ bool GmxPlugin::write(const Map *map, const QString &fileName)
                 stream.writeAttribute("name", name);
             }
             //Custom add atribute
-            writeAttribute(QString("code"),optionalProperty(object, "code", QString()),(QIODevice*)stream.device(),(QTextCodec*)stream.codec());
+            QString cc = QString("code");
+            QString cc2 = optionalProperty(object, "code", QString());
+            writeAttribute(cc,cc2,(QIODevice*)stream.device(),(QTextCodec*)stream.codec());
             //stream.writeAttribute("code", optionalProperty(object, "code", QString()));
             stream.writeAttribute("scaleX", QString::number(scaleX));
             stream.writeAttribute("scaleY", QString::number(scaleY));
@@ -1175,7 +1183,8 @@ bool GmxPlugin::write(const Map *map, const QString &fileName)
         }
 
         //Custom add atribute
-        writeAttribute(QString("code"),cCode,(QIODevice*)stream.device(),(QTextCodec*)stream.codec());
+        QString cc = QString("code");
+        writeAttribute(cc,cCode,(QIODevice*)stream.device(),(QTextCodec*)stream.codec());
         //stream.writeAttribute("code", optionalProperty(object, "code", QString()));
         stream.writeAttribute("scaleX", QString::number(1));
         stream.writeAttribute("scaleY", QString::number(1));
@@ -1215,7 +1224,7 @@ QString GmxPlugin::errorString() const
 
 QString GmxPlugin::nameFilter() const
 {
-    return tr("GameMaker room files (*.room.gmx)");
+    return tr("GameMaker room files (*room.gmx)");
 }
 
 QString GmxPlugin::shortName() const

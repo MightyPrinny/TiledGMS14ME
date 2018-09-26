@@ -32,6 +32,7 @@
 #include "tile.h"
 #include "tilelayer.h"
 #include "preferences.h"
+#include "qmath.h"
 
 #include <QApplication>
 #include <QClipboard>

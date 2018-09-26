@@ -22,6 +22,7 @@
 #include "snaphelper.h"
 
 #include "preferences.h"
+#include <qmath.h>
 
 namespace Tiled {
 namespace Internal {
