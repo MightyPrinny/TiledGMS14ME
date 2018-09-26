@@ -1,3 +1,5 @@
+https://github.com/MightyPrinny/TiledAndMegamixEngine/wiki/Guide
+
 This is a modification of Tiled made for Megamix Engine
 Changes
 -Maps now have quad sizes and the grid show the quads
