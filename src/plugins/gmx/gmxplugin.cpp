@@ -1092,6 +1092,8 @@ bool GmxPlugin::write(const Map *map, const QString &fileName)
             if (!object->cell().isEmpty()) {
                 // For tile objects we can support scaling and flipping, though
                 // flipping in combination with rotation doesn't work in GameMaker.
+
+
                 if (auto tile = object->cell().tile()) {
                     const QSize tileSize = tile->size();
                     if(imageWidth==-1||imageHeigth==-1)
@@ -1102,20 +1104,35 @@ bool GmxPlugin::write(const Map *map, const QString &fileName)
                     scaleX = abs(object->width() / imageWidth) ;
                     scaleY = abs(object->height() / imageHeigth);
 
+
                     if (object->cell().flippedHorizontally()) {
                         scaleX *= -1;
-                        origin += QPointF(object->width() - 2 * origin.x(), 0);
+                        //origin += QPointF((object->width()*scaleX) - 2 * origin.x(), 0);
                     }
                     if (object->cell().flippedVertically()) {
                         scaleY *= -1;
-                        origin += QPointF(0, object->height() - 2 * origin.y());
+                        //origin += QPointF(0, (object->height()*scaleY) - 2 * origin.y());
+                    }
+                    if(scaleX>=0){
+                        origin.setX(origin.x()*scaleX);
+                    }
+                    else{
+                        origin.setX((imageWidth*abs(scaleX))-(origin.x()*abs(scaleX)));
+                    }
+
+                    if(scaleY>=0){
+                        origin.setY(origin.y()*scaleY);
+                    }
+                    else{
+                        origin.setY((imageHeigth*abs(scaleY))-(origin.y()*abs(scaleY)));
                     }
                 }
-
                 // Tile objects have bottom-left origin in Tiled, so the
                 // position needs to be translated for top-left origin in
                 // GameMaker, taking into account the rotation.
                 origin += QPointF(0, -object->height());
+
+
             }
             else if(imageWidth!=-1 && imageHeigth!=-1){
                 scaleX = object->width() / imageWidth;
