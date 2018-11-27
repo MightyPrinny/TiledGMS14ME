@@ -401,6 +401,9 @@ MainWindow::MainWindow(QWidget *parent, Qt::WindowFlags flags)
             this, &MainWindow::run);
     connect(mUi->actionGenerate_Templates, &QAction::triggered,
             this, &MainWindow::generateTemplates);
+
+    connect(mUi->actionFixObjectImages, &QAction::triggered,
+            this, &MainWindow::fixObjectImages);
     connect(mUi->actionAddMusic, &QAction::triggered,
             this, &MainWindow::addMusicToCreationCode);
 
@@ -1025,6 +1028,49 @@ void MainWindow::generateTemplates()
     std::unique_ptr<GameMakerObjectImporter> helper(new GameMakerObjectImporter(this));
     helper->generateTemplates();
 }
+
+void MainWindow::fixObjectImages()
+{
+    if(this->mDocument->type() == MapDocument::MapDocumentType)
+    {
+        MapDocument *mDoc = dynamic_cast<MapDocument*>(this->mDocument);
+        auto layers = mDoc->map()->layers();
+        if(layers.empty())
+        {
+            return;
+        }
+        for(auto l : layers)
+        {
+            if(l->layerType() == l->ObjectGroupType)
+            {
+                auto objects = l->asObjectGroup()->objects();
+                if(!objects.empty())
+                {
+                    for(auto o : objects)
+                    {
+                        auto t = o->templateObject();
+
+                        if(o != nullptr)
+                        {
+
+                            auto flipH = o->cell().flippedHorizontally();
+                            auto flipV = o->cell().flippedVertically();
+                            o->setCell(t->cell());
+                            if(flipH)
+                                o->flip(FlipDirection::FlipHorizontally,QPointF(0,0));
+                            if(flipV)
+                            {
+                                o->flip(FlipDirection::FlipVertically,QPointF(0,0));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+
 
 void MainWindow::addMusicToCreationCode()
 {
@@ -1833,3 +1879,4 @@ void MainWindow::reloadError(const QString &error)
 {
     QMessageBox::critical(this, tr("Error Reloading Map"), error);
 }
+

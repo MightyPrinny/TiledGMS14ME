@@ -124,6 +124,7 @@ private slots:
     void run();
     void gameClosed();
     void generateTemplates();
+    void fixObjectImages();
 
     void cut();
     void copy();

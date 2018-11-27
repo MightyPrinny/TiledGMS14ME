@@ -187,6 +187,7 @@
     <addaction name="actionRun"/>
     <addaction name="actionAddMusic"/>
     <addaction name="actionGenerate_Templates"/>
+    <addaction name="actionFixObjectImages"/>
    </widget>
    <addaction name="menuMap"/>
    <addaction name="menuFile"/>
@@ -687,6 +688,14 @@
   <action name="actionAddMusic">
    <property name="text">
     <string>Add Music To Creation Code</string>
+   </property>
+  </action>
+  <action name="actionFixObjectImages">
+   <property name="text">
+    <string>Fix Object Images</string>
+   </property>
+   <property name="toolTip">
+    <string>Syncs object images to their template</string>
    </property>
   </action>
  </widget>
