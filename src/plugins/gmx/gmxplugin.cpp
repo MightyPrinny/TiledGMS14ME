@@ -223,17 +223,17 @@ GmxPlugin::GmxPlugin()
 void GmxPlugin::mapTemplates(std::unordered_map<std::string,std::string> *map, QDir &root )
 {
     QFileInfoList fileInfoList = root.entryInfoList();
-    qDebug()<<root.path();
 
     QDirIterator it(root.path(), QStringList() << "*.tx", QDir::Files, QDirIterator::Subdirectories);
     while (it.hasNext())
     {
-        QFileInfo info = it.fileInfo();
+		it.next();
+		QFileInfo info = it.fileInfo();
         if(info.isFile())
         {
             map->emplace(make_pair(info.baseName().toStdString(),info.absoluteFilePath().toStdString()));
         }
-        it.next();
+
     }
 }
 
@@ -614,15 +614,23 @@ Tiled::Map *GmxPlugin::read(const QString &fileName, QSettings *appSettings)
 
             QString tempath = QString("");
             unordered_map<string,string>::iterator it = templateMap->find(objName.toStdString());
+
             if(it != templateMap->end())
             {
                 tempath = QString(it->second.c_str());
             }
+			else
+			{
+				if(objName == QStringLiteral("objSlopeR"))
+				{
+					qDebug() << "FUCK";
+				}
+			}
 
             QPointF pos = QPointF(x,y);
             ObjectTemplate *templ = TemplateManager::instance()->loadObjectTemplate(tempath);
 
-            if(templ!=nullptr&&templ->object()!=nullptr&&templ->object()->inheritedProperty(QString("originX")).isValid())
+			if(templ!=nullptr&&templ->object()!=nullptr&&templ->object()->inheritedProperty(QString("originX")).isValid())
             {
                 QVariant aux = templ->object()->inheritedProperty(QString("originX"));
                 int originX = aux.toInt();
@@ -669,6 +677,7 @@ Tiled::Map *GmxPlugin::read(const QString &fileName, QSettings *appSettings)
             }
             else
             {
+
 				int originX = 0;
 				int originY = 0;
 
