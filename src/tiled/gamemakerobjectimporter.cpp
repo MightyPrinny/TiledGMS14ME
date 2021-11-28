@@ -68,17 +68,17 @@ static QString str(char* chars)
 
 QString GameMakerObjectImporter::getNodePath(rapidxml::xml_node<>* node)
 {
-    QString path = str("");
+	QString path = QStringLiteral("");
     using namespace std;
     using namespace rapidxml;
     xml_node<>* itNode = node->parent();
     if(itNode->parent())
     {
         stack<QString> pathStack;
-        while(itNode->parent() && str(itNode->parent()->name())==str("objects"))
+		while(itNode->parent() && str(itNode->parent()->name())==QStringLiteral("objects"))
         {
 
-            pathStack.push(str("/").append(str(itNode->first_attribute("name")->value())));
+			pathStack.push( QStringLiteral("/").append(str(itNode->first_attribute("name")->value())));
             itNode = itNode->parent();
         }
         while(!pathStack.empty())
@@ -100,7 +100,7 @@ void GameMakerObjectImporter::mapChilds(rapidxml::xml_node<>* node, std::unorder
         //Map childs
         string path = getNodePath(itNode).toStdString();
         QString objName = str(itNode->value());
-        objName.remove(str("objects\\"));
+		objName.remove(QStringLiteral("objects\\"));
         string objectName = objName.toStdString();
         objectFolderMap->emplace(make_pair(objectName,path));
         itNode = itNode->next_sibling("object");
@@ -159,19 +159,19 @@ void GameMakerObjectImporter::generateTemplates(QString dir, QString outputDirPa
 	bool valid = true;
     //Directories
     QDir rootDir =  QDir(dir);
-	valid &= rootDir.cd(QLatin1String("objects"));
+	valid &= rootDir.cd(QStringLiteral("objects"));
     QDir objectDir =  QDir(rootDir.path());
 	rootDir.cdUp();
-	valid &= rootDir.cd(QLatin1String("sprites"));
+	valid &= rootDir.cd(QStringLiteral("sprites"));
     QDir spriteDir =  QDir(rootDir.path());
-	valid &= rootDir.cd(QLatin1String("images"));
+	valid &= rootDir.cd(QStringLiteral("images"));
     QDir imageDir =  QDir(rootDir.path());
     rootDir.cdUp();
     rootDir.cdUp();
 
 	QDir outputDir = QDir(outputDirPath);
-	outputDir .mkdir(QLatin1String("templates"));
-	valid &= outputDir .cd(QLatin1String("templates"));
+	outputDir .mkdir(QStringLiteral("templates"));
+	valid &= outputDir .cd(QStringLiteral("templates"));
 	QDir templateDir = QDir(outputDir.path());
 	outputDir.cdUp();
 
@@ -179,6 +179,11 @@ void GameMakerObjectImporter::generateTemplates(QString dir, QString outputDirPa
 	{
 		qDebug() << "Invalid directory";
 		return;
+	}
+	if(!outputDir.exists(QStringLiteral("gmDefaultImage.png")))
+	{
+		qDebug() << "No default image file at " << outputDir.filePath(QStringLiteral("gmDefaultImage.png"));
+		QFile::copy(QStringLiteral(":/GMTemplateGeneration/DefaultTemplate.png"), outputDir.filePath(QStringLiteral("gmDefaultImage.png")));
 	}
 
     objectDir.setFilter(QDir::Files | QDir::Hidden | QDir::NoSymLinks);
@@ -191,8 +196,8 @@ void GameMakerObjectImporter::generateTemplates(QString dir, QString outputDirPa
     //Progress Bar
 	QProgressDialog progress(nullptr);
 
-	progress.setLabelText(QLatin1String("Generating Templates"));
-	progress.setCancelButtonText(QLatin1String("Abort"));
+	progress.setLabelText(QStringLiteral("Generating Templates"));
+	progress.setCancelButtonText(QStringLiteral("Abort"));
 	progress.setMinimum(0);
 	progress.setMaximum(totalObjects);
 	progress.setWindowFlags(Qt::WindowMinMaxButtonsHint);
@@ -202,7 +207,7 @@ void GameMakerObjectImporter::generateTemplates(QString dir, QString outputDirPa
 	QCoreApplication::processEvents();
 	//progress->repaint();
 
-    QString projectFilePath = str("");
+	QString projectFilePath = QStringLiteral("");
     unordered_map<string,string> *objectFolderMap = new unordered_map<string,string>();
     unordered_map<string,int> *imageIDMap = new unordered_map<string,int>();
     bool useObjectFolders = false;
@@ -215,7 +220,7 @@ void GameMakerObjectImporter::generateTemplates(QString dir, QString outputDirPa
             QFileInfo finfo = rootInfo.at(a);
             if(finfo.isFile())
             {
-                if(finfo.fileName().endsWith(str(".project.gmx")))
+				if(finfo.fileName().endsWith(QStringLiteral(".project.gmx")))
                 {
                     projectFilePath = finfo.filePath();
                     useObjectFolders = true;
@@ -229,17 +234,27 @@ void GameMakerObjectImporter::generateTemplates(QString dir, QString outputDirPa
         mapObjectsToFolders(projectFilePath,objectFolderMap);
     }
 
-    QString undefined = QLatin1String("&lt;undefined&gt;");
+	QString undefined = QStringLiteral("&lt;undefined&gt;");
 
-	QFile *imageCollection = new QFile(outputDir.path().append(QLatin1String("/images.tsx")));
+	QFile *imageCollection = new QFile(outputDir.path().append(QStringLiteral("/images.tsx")));
     imageCollection->open(QIODevice::WriteOnly | QIODevice::Text);
     imageCollection->flush();
 
-	QString typesDir = outputDir.path().append(QLatin1String("/types.xml"));
-	QString imageCollectionPath = templateDir.relativeFilePath(outputDir.path().append(QLatin1String("/images.tsx")));
+	QString typesDir = outputDir.path().append(QStringLiteral("/types.xml"));
+	QString imageCollectionPath = templateDir.relativeFilePath(outputDir.path().append(QStringLiteral("/images.tsx")));
 
     QVector<imageEntry*>* imageList = new QVector<imageEntry*>();
-    imageList->reserve(totalObjects);
+	imageList->reserve(totalObjects+1);
+
+	int defaultImageId = -1;
+	if(outputDir.exists(QStringLiteral("gmDefaultImage.png")))
+	{
+		auto defaultImgName = QStringLiteral("gmDefaultImage.png");
+		auto defaultImgPath = outputDir.relativeFilePath(QStringLiteral("gmDefaultImage.png"));
+		defaultImageId = addImage(defaultImgName,
+								  defaultImgPath, 8, 8, imageList, imageIDMap);
+	}
+
     int maxWidth = 0;
     int maxHeigth = 0;
 
@@ -259,7 +274,7 @@ void GameMakerObjectImporter::generateTemplates(QString dir, QString outputDirPa
     typesWriter.setAutoFormatting(true);
     typesWriter.setDevice(typesFile);
     typesWriter.writeStartDocument();
-    typesWriter.writeStartElement(str("objecttypes"));
+	typesWriter.writeStartElement(QStringLiteral("objecttypes"));
 
 
     //Loop through object files
@@ -267,8 +282,10 @@ void GameMakerObjectImporter::generateTemplates(QString dir, QString outputDirPa
 		if((i%32) == 0)
 		{
 			progress.setValue(i);
+		}
+		if((i%64) == 0)
+		{
 			QCoreApplication::processEvents();
-
 		}
 		if(progress.wasCanceled())
             break;
@@ -311,80 +328,90 @@ void GameMakerObjectImporter::generateTemplates(QString dir, QString outputDirPa
         int imageWidth=1;
 
         int imageHeigth=1;
-
-        if(spriteName == QLatin1String("<undefined>") || spriteName==undefined || spriteName.isEmpty())
+		int gid;
+		if(spriteName == QStringLiteral("<undefined>") || spriteName==undefined || spriteName.isEmpty())
         {
 			//qDebug()<<"Object doesn't have a sprite, skipping...";
-            auxDoc.clear();
-            continue;
+			if(defaultImageId < 1)
+			{
+				auxDoc.clear();
+				continue;
+			}
+			gid = defaultImageId;
+			imageWidth = 8;
+			imageHeigth = 8;
         }
-        QFile *spriteFile = findSprite(spriteName,&spriteDir);
+		else
+		{
+			QFile *spriteFile = findSprite(spriteName,&spriteDir);
 
-        if(spriteFile==nullptr){
-            continue;
-        }
-        QString spr = QString(spriteName);
+			if(spriteFile==nullptr){
+				continue;
+			}
+			QString spr = QString(spriteName);
 
-		QString imageFileDir = outputDir.relativeFilePath( imageDir.filePath(spriteName.append(QLatin1String("_0.png"))));
-        theFile.close();
-        auxDoc.clear();
-        theFile = ifstream(spriteFile->fileName().toStdString().c_str());
+			QString imageFilePath = outputDir.relativeFilePath( imageDir.filePath(spriteName.append(QStringLiteral("_0.png"))));
+			theFile.close();
+			auxDoc.clear();
+			theFile = ifstream(spriteFile->fileName().toStdString().c_str());
 
-        buffer = vector<char>((istreambuf_iterator<char>(theFile)), istreambuf_iterator<char>());
-        buffer.push_back('\0');
-        try {
-            auxDoc.parse<0>(&buffer[0]);
-        } catch (parse_error e) {
-            qDebug()<<"Error parsing sprite file";
-            delete spriteFile;
-            continue;
-        }
+			buffer = vector<char>((istreambuf_iterator<char>(theFile)), istreambuf_iterator<char>());
+			buffer.push_back('\0');
+			try {
+				auxDoc.parse<0>(&buffer[0]);
+			} catch (parse_error e) {
+				qDebug()<<"Error parsing sprite file";
+				delete spriteFile;
+				continue;
+			}
 
-        {
-            xml_node<> *spriteNode = auxDoc.first_node("sprite");
-            if(spriteNode)
-            {
-                auxNode = spriteNode->first_node("xorig");
-                if(auxNode)
-                    originX = QString(QLatin1String(auxNode->value())).toInt();
-                auxNode = spriteNode->first_node("yorigin");
-                if(auxNode)
-                    originY = QString(QLatin1String(auxNode->value())).toInt();
-                auxNode = spriteNode->first_node("width");
-                if(auxNode)
-                    imageWidth = QString(QLatin1String(auxNode->value())).toInt();
-                auxNode = spriteNode->first_node("height");
-                if(auxNode)
-                    imageHeigth = QString(QLatin1String(auxNode->value())).toInt();
-            }
+			{
+				xml_node<> *spriteNode = auxDoc.first_node("sprite");
+				if(spriteNode)
+				{
+					auxNode = spriteNode->first_node("xorig");
+					if(auxNode)
+						originX = QString(QLatin1String(auxNode->value())).toInt();
+					auxNode = spriteNode->first_node("yorigin");
+					if(auxNode)
+						originY = QString(QLatin1String(auxNode->value())).toInt();
+					auxNode = spriteNode->first_node("width");
+					if(auxNode)
+						imageWidth = QString(QLatin1String(auxNode->value())).toInt();
+					auxNode = spriteNode->first_node("height");
+					if(auxNode)
+						imageHeigth = QString(QLatin1String(auxNode->value())).toInt();
+				}
 
-        }
+			}
 
-        if(imageWidth>maxWidth)
-            maxWidth=imageWidth;
-        if(imageHeigth>maxHeigth)
-            maxHeigth=imageHeigth;
+			if(imageWidth>maxWidth)
+				maxWidth=imageWidth;
+			if(imageHeigth>maxHeigth)
+				maxHeigth=imageHeigth;
+			gid = addImage(spr,imageFilePath,imageWidth,imageHeigth,imageList,imageIDMap);
 
-        //Add image to the image list
-        int gid = addImage(spr,imageFileDir,imageWidth,imageHeigth,imageList,imageIDMap);
+			delete spriteFile;
+		}
+
 
         //Make template
-        QString subFolders = str("");
+		QString subFolders = QStringLiteral("");
         if(useObjectFolders)
         {
             unordered_map<string,string>::iterator it;
             it = objectFolderMap->find(objectName.toStdString());
             if(it!=objectFolderMap->end())
             {
-                subFolders = str((char*)it->second.c_str());
+				subFolders = str((char*)it->second.c_str());
 
             }
         }
 		QString templatePath = templateDir.path().append(subFolders);
 
         //QString templatePoth=templateDir.path().append(QLatin1String("/")).append(objectName).append(QLatin1String(".tx"));
-		imageCollectionPath = QDir(templatePath).relativeFilePath(outputDir.path().append(QLatin1String("/images.tsx")));
-		templatePath = templatePath.append(str("/").append(objectName).append(str(".tx")));
+		imageCollectionPath = QDir(templatePath).relativeFilePath(outputDir.filePath(QStringLiteral("images.tsx")));
+		templatePath = templatePath.append(QStringLiteral("/").append(objectName).append(QStringLiteral(".tx")));
         auxDoc.clear();
 		templateDir.mkpath(QFileInfo(templatePath).absolutePath());
 		QFile templateFile(templatePath);
@@ -394,189 +421,190 @@ void GameMakerObjectImporter::generateTemplates(QString dir, QString outputDirPa
             if(!templateFile.open(QIODevice::WriteOnly | QIODevice::Text ))
             {
                 qDebug()<<"\nError creating template file";
-                delete spriteFile;
                 continue;
             }
             templateWriter.setDevice(&templateFile);
             templateWriter.writeStartDocument();
 
-            templateWriter.writeStartElement(str("template"));
-            templateWriter.writeStartElement(str("tileset"));
-            templateWriter.writeAttribute(str("firstgid"),str("0"));
-            templateWriter.writeAttribute(str("source"),imageCollectionPath);
+			templateWriter.writeStartElement(QStringLiteral("template"));
+				templateWriter.writeStartElement(QStringLiteral("tileset"));
+				templateWriter.writeAttribute(QStringLiteral("firstgid"),QStringLiteral("0"));
+				templateWriter.writeAttribute(QStringLiteral("source"),imageCollectionPath);
             templateWriter.writeEndElement();
 
-            templateWriter.writeStartElement(str("object"));
-            templateWriter.writeAttribute(str("type"),objectName);
-            templateWriter.writeAttribute(str("gid"),QString::number(gid));
-            templateWriter.writeAttribute(str("width"),QString::number(imageWidth));
-            templateWriter.writeAttribute(str("height"),QString::number(imageHeigth));
-            templateWriter.writeEndElement();
+			templateWriter.writeStartElement(QStringLiteral("object"));
+				templateWriter.writeAttribute(QStringLiteral("type"),objectName);
+				templateWriter.writeAttribute(QStringLiteral("gid"),QString::number(gid));
+				templateWriter.writeAttribute(QStringLiteral("width"),QString::number(imageWidth));
+				templateWriter.writeAttribute(QStringLiteral("height"),QString::number(imageHeigth));
 
-            templateWriter.writeStartElement(str("properties"));
 
-            templateWriter.writeStartElement(str("property"));
-            templateWriter.writeAttribute(str("name"),str("offsetX"));
-            templateWriter.writeAttribute(str("type"),str("int"));
-            templateWriter.writeAttribute(str("value"),QString::number(originX));
-            templateWriter.writeEndElement();
+				templateWriter.writeStartElement(QStringLiteral("properties"));
 
-            templateWriter.writeStartElement(str("property"));
-            templateWriter.writeAttribute(str("name"),str("originX"));
-            templateWriter.writeAttribute(str("type"),str("int"));
-            templateWriter.writeAttribute(str("value"),QString::number(originX));
-            templateWriter.writeEndElement();
+					templateWriter.writeStartElement(QStringLiteral("property"));
+						templateWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("offsetX"));
+						templateWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("int"));
+						templateWriter.writeAttribute(QStringLiteral("value"),QString::number(originX));
+					templateWriter.writeEndElement();
 
-            templateWriter.writeStartElement(str("property"));
-            templateWriter.writeAttribute(str("name"),str("offsetY"));
-            templateWriter.writeAttribute(str("type"),str("int"));
-            templateWriter.writeAttribute(str("value"),QString::number(originY));
-            templateWriter.writeEndElement();
+					templateWriter.writeStartElement(QStringLiteral("property"));
+						templateWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("originX"));
+						templateWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("int"));
+						templateWriter.writeAttribute(QStringLiteral("value"),QString::number(originX));
+					templateWriter.writeEndElement();
 
-            templateWriter.writeStartElement(str("property"));
-            templateWriter.writeAttribute(str("name"),str("originY"));
-            templateWriter.writeAttribute(str("type"),str("int"));
-            templateWriter.writeAttribute(str("value"),QString::number(originY));
-            templateWriter.writeEndElement();
+					templateWriter.writeStartElement(QStringLiteral("property"));
+						templateWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("offsetY"));
+						templateWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("int"));
+						templateWriter.writeAttribute(QStringLiteral("value"),QString::number(originY));
+					templateWriter.writeEndElement();
 
-            templateWriter.writeStartElement(str("property"));
-            templateWriter.writeAttribute(str("name"),str("imageWidth"));
-            templateWriter.writeAttribute(str("type"),str("int"));
-            templateWriter.writeAttribute(str("value"),QString::number(imageWidth));
-            templateWriter.writeEndElement();
+					templateWriter.writeStartElement(QStringLiteral("property"));
+						templateWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("originY"));
+						templateWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("int"));
+						templateWriter.writeAttribute(QStringLiteral("value"),QString::number(originY));
+					templateWriter.writeEndElement();
 
-            templateWriter.writeStartElement(str("property"));
-            templateWriter.writeAttribute(str("name"),str("imageHeight"));
-            templateWriter.writeAttribute(str("type"),str("int"));
-            templateWriter.writeAttribute(str("value"),QString::number(imageHeigth));
-            templateWriter.writeEndElement();
+					templateWriter.writeStartElement(QStringLiteral("property"));
+						templateWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("imageWidth"));
+						templateWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("int"));
+						templateWriter.writeAttribute(QStringLiteral("value"),QString::number(imageWidth));
+					templateWriter.writeEndElement();
 
-            templateWriter.writeStartElement(str("property"));
-            templateWriter.writeAttribute(str("name"),str("code"));
-            templateWriter.writeAttribute(str("type"),str("string"));
-            templateWriter.writeAttribute(str("value"),str(""));
-            templateWriter.writeEndElement();
+					templateWriter.writeStartElement(QStringLiteral("property"));
+						templateWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("imageHeight"));
+						templateWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("int"));
+						templateWriter.writeAttribute(QStringLiteral("value"),QString::number(imageHeigth));
+					templateWriter.writeEndElement();
 
-            templateWriter.writeEndElement();
+					templateWriter.writeStartElement(QStringLiteral("property"));
+						templateWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("code"));
+						templateWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("string"));
+						templateWriter.writeAttribute(QStringLiteral("value"),QStringLiteral(""));
+					templateWriter.writeEndElement();
+
+					templateWriter.writeEndElement();
+
+				templateWriter.writeEndElement();
+
             templateWriter.writeEndDocument();
 
             templateFile.close();
         }
 
-        typesWriter.writeStartElement(str("objecttype"));
-        typesWriter.writeAttribute(str("name"),objectName);
-        typesWriter.writeAttribute(str("color"),str("#ffffff"));
+		typesWriter.writeStartElement(QStringLiteral("objecttype"));
+			typesWriter.writeAttribute(QStringLiteral("name"),objectName);
+			typesWriter.writeAttribute(QStringLiteral("color"),QStringLiteral("#ffffff"));
 
-        typesWriter.writeStartElement(str("property"));
-        typesWriter.writeAttribute(str("name"),str("offsetX"));
-        typesWriter.writeAttribute(str("type"),str("int"));
-        typesWriter.writeAttribute(str("default"),QString::number(originX));
+			typesWriter.writeStartElement(QStringLiteral("property"));
+				typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("offsetX"));
+				typesWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("int"));
+				typesWriter.writeAttribute(QStringLiteral("default"),QString::number(originX));
+			typesWriter.writeEndElement();
+
+			typesWriter.writeStartElement(QStringLiteral("property"));
+				typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("originX"));
+				typesWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("int"));
+				typesWriter.writeAttribute(QStringLiteral("default"),QString::number(originX));
+			typesWriter.writeEndElement();
+
+			typesWriter.writeStartElement(QStringLiteral("property"));
+				typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("offsetY"));
+				typesWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("int"));
+				typesWriter.writeAttribute(QStringLiteral("default"),QString::number(originY));
+			typesWriter.writeEndElement();
+
+			typesWriter.writeStartElement(QStringLiteral("property"));
+				typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("originY"));
+				typesWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("int"));
+				typesWriter.writeAttribute(QStringLiteral("default"),QString::number(originY));
+			typesWriter.writeEndElement();
+
+			typesWriter.writeStartElement(QStringLiteral("property"));
+				typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("imageWidth"));
+				typesWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("int"));
+				typesWriter.writeAttribute(QStringLiteral("default"),QString::number(imageWidth));
+			typesWriter.writeEndElement();
+
+			typesWriter.writeStartElement(QStringLiteral("property"));
+				typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("imageHeight"));
+				typesWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("int"));
+				typesWriter.writeAttribute(QStringLiteral("default"),QString::number(imageHeigth));
+			typesWriter.writeEndElement();
+
+			typesWriter.writeStartElement(QStringLiteral("property"));
+				typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("code"));
+				typesWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("string"));
+				typesWriter.writeAttribute(QStringLiteral("default"),QStringLiteral(""));
+			typesWriter.writeEndElement();
+
         typesWriter.writeEndElement();
 
-        typesWriter.writeStartElement(str("property"));
-        typesWriter.writeAttribute(str("name"),str("originX"));
-        typesWriter.writeAttribute(str("type"),str("int"));
-        typesWriter.writeAttribute(str("default"),QString::number(originX));
-        typesWriter.writeEndElement();
-
-        typesWriter.writeStartElement(str("property"));
-        typesWriter.writeAttribute(str("name"),str("offsetY"));
-        typesWriter.writeAttribute(str("type"),str("int"));
-        typesWriter.writeAttribute(str("default"),QString::number(originY));
-        typesWriter.writeEndElement();
-
-        typesWriter.writeStartElement(str("property"));
-        typesWriter.writeAttribute(str("name"),str("originY"));
-        typesWriter.writeAttribute(str("type"),str("int"));
-        typesWriter.writeAttribute(str("default"),QString::number(originY));
-        typesWriter.writeEndElement();
-
-        typesWriter.writeStartElement(str("property"));
-        typesWriter.writeAttribute(str("name"),str("imageWidth"));
-        typesWriter.writeAttribute(str("type"),str("int"));
-        typesWriter.writeAttribute(str("default"),QString::number(imageWidth));
-        typesWriter.writeEndElement();
-
-        typesWriter.writeStartElement(str("property"));
-        typesWriter.writeAttribute(str("name"),str("imageHeight"));
-        typesWriter.writeAttribute(str("type"),str("int"));
-        typesWriter.writeAttribute(str("default"),QString::number(imageHeigth));
-        typesWriter.writeEndElement();
-
-        typesWriter.writeStartElement(str("property"));
-        typesWriter.writeAttribute(str("name"),str("code"));
-        typesWriter.writeAttribute(str("type"),str("string"));
-        typesWriter.writeAttribute(str("default"),str(""));
-        typesWriter.writeEndElement();
-
-        typesWriter.writeEndElement();
-
-        delete spriteFile;
      }
 
 
-    typesWriter.writeStartElement(str("objecttype"));
-    typesWriter.writeAttribute(str("name"),str("view"));
-    typesWriter.writeAttribute(str("color"),str("#9c48a4"));
+	typesWriter.writeStartElement(QStringLiteral("objecttype"));
+	typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("view"));
+	typesWriter.writeAttribute(QStringLiteral("color"),QStringLiteral("#9c48a4"));
 
-    typesWriter.writeStartElement(str("property"));
-    typesWriter.writeAttribute(str("name"),str("hborder"));
-    typesWriter.writeAttribute(str("type"),str("int"));
-    typesWriter.writeAttribute(str("default"),str("9999"));
+	typesWriter.writeStartElement(QStringLiteral("property"));
+	typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("hborder"));
+	typesWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("int"));
+	typesWriter.writeAttribute(QStringLiteral("default"),QStringLiteral("9999"));
     typesWriter.writeEndElement();
 
-    typesWriter.writeStartElement(str("property"));
-    typesWriter.writeAttribute(str("name"),str("hport"));
-    typesWriter.writeAttribute(str("type"),str("int"));
-    typesWriter.writeAttribute(str("default"),str("224"));
+	typesWriter.writeStartElement(QStringLiteral("property"));
+	typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("hport"));
+	typesWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("int"));
+	typesWriter.writeAttribute(QStringLiteral("default"),QStringLiteral("224"));
     typesWriter.writeEndElement();
 
-    typesWriter.writeStartElement(str("property"));
-    typesWriter.writeAttribute(str("name"),str("hview"));
-    typesWriter.writeAttribute(str("type"),str("int"));
-    typesWriter.writeAttribute(str("default"),str("224"));
+	typesWriter.writeStartElement(QStringLiteral("property"));
+	typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("hview"));
+	typesWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("int"));
+	typesWriter.writeAttribute(QStringLiteral("default"),QStringLiteral("224"));
     typesWriter.writeEndElement();
 
-    typesWriter.writeStartElement(str("property"));
-    typesWriter.writeAttribute(str("name"),str("vborder"));
-    typesWriter.writeAttribute(str("type"),str("int"));
-    typesWriter.writeAttribute(str("default"),str("9999"));
+	typesWriter.writeStartElement(QStringLiteral("property"));
+	typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("vborder"));
+	typesWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("int"));
+	typesWriter.writeAttribute(QStringLiteral("default"),QStringLiteral("9999"));
     typesWriter.writeEndElement();
 
-    typesWriter.writeStartElement(str("property"));
-    typesWriter.writeAttribute(str("name"),str("wport"));
-    typesWriter.writeAttribute(str("type"),str("int"));
-    typesWriter.writeAttribute(str("default"),str("256"));
+	typesWriter.writeStartElement(QStringLiteral("property"));
+	typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("wport"));
+	typesWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("int"));
+	typesWriter.writeAttribute(QStringLiteral("default"),QStringLiteral("256"));
     typesWriter.writeEndElement();
 
-    typesWriter.writeStartElement(str("property"));
-    typesWriter.writeAttribute(str("name"),str("wview"));
-    typesWriter.writeAttribute(str("type"),str("int"));
-    typesWriter.writeAttribute(str("default"),str("256"));
+	typesWriter.writeStartElement(QStringLiteral("property"));
+	typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("wview"));
+	typesWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("int"));
+	typesWriter.writeAttribute(QStringLiteral("default"),QStringLiteral("256"));
     typesWriter.writeEndElement();
 
-    typesWriter.writeStartElement(str("property"));
-    typesWriter.writeAttribute(str("name"),str("xport"));
-    typesWriter.writeAttribute(str("type"),str("int"));
-    typesWriter.writeAttribute(str("default"),str("0"));
+	typesWriter.writeStartElement(QStringLiteral("property"));
+	typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("xport"));
+	typesWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("int"));
+	typesWriter.writeAttribute(QStringLiteral("default"),QStringLiteral("0"));
     typesWriter.writeEndElement();
 
-    typesWriter.writeStartElement(str("property"));
-    typesWriter.writeAttribute(str("name"),str("xview"));
-    typesWriter.writeAttribute(str("type"),str("int"));
-    typesWriter.writeAttribute(str("default"),str("0"));
+	typesWriter.writeStartElement(QStringLiteral("property"));
+	typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("xview"));
+	typesWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("int"));
+	typesWriter.writeAttribute(QStringLiteral("default"),QStringLiteral("0"));
     typesWriter.writeEndElement();
 
-    typesWriter.writeStartElement(str("property"));
-    typesWriter.writeAttribute(str("name"),str("yport"));
-    typesWriter.writeAttribute(str("type"),str("int"));
-    typesWriter.writeAttribute(str("default"),str("0"));
+	typesWriter.writeStartElement(QStringLiteral("property"));
+	typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("yport"));
+	typesWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("int"));
+	typesWriter.writeAttribute(QStringLiteral("default"),QStringLiteral("0"));
     typesWriter.writeEndElement();
 
-    typesWriter.writeStartElement(str("property"));
-    typesWriter.writeAttribute(str("name"),str("yview"));
-    typesWriter.writeAttribute(str("type"),str("int"));
-    typesWriter.writeAttribute(str("default"),str("0"));
+	typesWriter.writeStartElement(QStringLiteral("property"));
+	typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("yview"));
+	typesWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("int"));
+	typesWriter.writeAttribute(QStringLiteral("default"),QStringLiteral("0"));
     typesWriter.writeEndElement();
 
     typesWriter.writeEndElement();
@@ -591,26 +619,26 @@ void GameMakerObjectImporter::generateTemplates(QString dir, QString outputDirPa
 
     typesWriter.setDevice(imageCollection);
     typesWriter.writeStartDocument();
-    typesWriter.writeStartElement(QLatin1String("tileset"));
-    typesWriter.writeAttribute(QLatin1String("name"),QLatin1String("images"));
-    typesWriter.writeAttribute(QLatin1String("tilewidth"),QString::number(maxWidth));
-    typesWriter.writeAttribute(QLatin1String("tileheight"),QString::number(maxHeigth));
-    typesWriter.writeAttribute(QLatin1String("tileCount"),QString::number(total));
-    typesWriter.writeAttribute(QLatin1String("columns"),QString::number(0));
-    typesWriter.writeStartElement(QLatin1String("grid"));
-    typesWriter.writeAttribute(QLatin1String("orientation"),QLatin1String("orthogonal"));
-    typesWriter.writeAttribute(QLatin1String("width"),QLatin1String("1"));
-    typesWriter.writeAttribute(QLatin1String("heigth"),QLatin1String("1"));
+	typesWriter.writeStartElement(QStringLiteral("tileset"));
+	typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("images"));
+	typesWriter.writeAttribute(QStringLiteral("tilewidth"),QString::number(maxWidth));
+	typesWriter.writeAttribute(QStringLiteral("tileheight"),QString::number(maxHeigth));
+	typesWriter.writeAttribute(QStringLiteral("tileCount"),QString::number(total));
+	typesWriter.writeAttribute(QStringLiteral("columns"),QString::number(0));
+	typesWriter.writeStartElement(QStringLiteral("grid"));
+	typesWriter.writeAttribute(QStringLiteral("orientation"),QStringLiteral("orthogonal"));
+	typesWriter.writeAttribute(QStringLiteral("width"),QStringLiteral("1"));
+	typesWriter.writeAttribute(QStringLiteral("heigth"),QStringLiteral("1"));
     typesWriter.writeEndElement();
-    for(int i=0;i<total;++i)
+	for(int i=0;i<total;++i)
     {
-        imageEntry* image = imageList->at(i);
-        typesWriter.writeStartElement(QLatin1String("tile"));
-        typesWriter.writeAttribute(QLatin1String("id"),QString::number(i));
-        typesWriter.writeStartElement(QLatin1String("image"));
-        typesWriter.writeAttribute(QLatin1String("width"),QString::number(image->imageWidth));
-        typesWriter.writeAttribute(QLatin1String("height"),QString::number(image->imageHeigth));
-        typesWriter.writeAttribute(QLatin1String("source"),image->rPath);
+		imageEntry* image = imageList->at(i);
+		typesWriter.writeStartElement(QStringLiteral("tile"));
+		typesWriter.writeAttribute(QStringLiteral("id"),QString::number(i+1));
+		typesWriter.writeStartElement(QStringLiteral("image"));
+		typesWriter.writeAttribute(QStringLiteral("width"),QString::number(image->imageWidth));
+		typesWriter.writeAttribute(QStringLiteral("height"),QString::number(image->imageHeigth));
+		typesWriter.writeAttribute(QStringLiteral("source"),image->rPath);
         typesWriter.writeEndElement();
         typesWriter.writeEndElement();
     }
@@ -631,7 +659,7 @@ void GameMakerObjectImporter::generateTemplates(QString dir, QString outputDirPa
 
 QFile* GameMakerObjectImporter::findSprite(QString filename, QDir* dir)
 {
-    QString fname = filename.append(QLatin1String(".sprite.gmx"));
+	QString fname = filename.append(QStringLiteral(".sprite.gmx"));
     QFile * newFile = new QFile(dir->absoluteFilePath(fname));
     if(newFile->exists())
         return newFile;
@@ -646,13 +674,13 @@ int GameMakerObjectImporter::addImage(QString &filename,QString &fileDir,int wid
 {
     using namespace std;
     int rval = -1;
-    int total = list->size();
+	//int total = list->size();
     auto find = idmap->find(filename.toStdString());
     if(find==idmap->end())
     {
 		imageEntry *img = new imageEntry(fileDir, fileDir,width,heigth);
         list->append(img);
-        rval = list->size()-1;
+		rval = list->size();
         idmap->emplace(make_pair(filename.toStdString(),rval));
     }
     else

@@ -1259,7 +1259,6 @@ bool GmxPlugin::write(const Map *map, const QString &fileName)
     stream.writeEndDocument();
 
 
-
     if (!file.commit()) {
         mError = file.errorString();
         return false;

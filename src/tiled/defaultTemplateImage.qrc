@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/GMTemplateGeneration">
+        <file>DefaultTemplate.png</file>
+    </qresource>
+</RCC>

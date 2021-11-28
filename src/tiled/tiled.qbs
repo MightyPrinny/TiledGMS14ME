@@ -204,6 +204,7 @@ QtGuiApplication {
         "createtextobjecttool.h",
         "createtileobjecttool.cpp",
         "createtileobjecttool.h",
+        "defaultTemplateImage.qrc",
         "document.cpp",
         "document.h",
         "documentmanager.cpp",
