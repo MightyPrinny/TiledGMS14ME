@@ -32,11 +32,11 @@
 
 namespace Tiled {
 
-Map *readMap(const QString &fileName, QString *error)
+Map *readMap(const QString &fileName, QSettings* settings, QString *error)
 {
     // Try the first registered map format that claims to support the file
     if (MapFormat *format = findSupportingMapFormat(fileName)) {
-        Map *map = format->read(fileName);
+		Map *map = format->read(fileName, settings);
 
         if (error) {
             if (!map)

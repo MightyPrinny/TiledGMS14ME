@@ -51,7 +51,7 @@ public:
      */
     ReplicaIslandPlugin();
 
-    Tiled::Map *read(const QString &fileName) override;
+	Tiled::Map *read(const QString &fileName, QSettings *) override;
     QString nameFilter() const override;
     QString shortName() const override;
     bool supportsFile(const QString &fileName) const override;

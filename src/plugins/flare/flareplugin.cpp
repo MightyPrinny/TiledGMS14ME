@@ -48,7 +48,7 @@ FlarePlugin::FlarePlugin()
 {
 }
 
-Tiled::Map *FlarePlugin::read(const QString &fileName)
+Tiled::Map *FlarePlugin::read(const QString &fileName, QSettings *settings)
 {
     QFile file(fileName);
 

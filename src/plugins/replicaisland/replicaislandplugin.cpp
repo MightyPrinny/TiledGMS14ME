@@ -48,7 +48,7 @@ ReplicaIslandPlugin::ReplicaIslandPlugin()
 {
 }
 
-Tiled::Map *ReplicaIslandPlugin::read(const QString &fileName)
+Tiled::Map *ReplicaIslandPlugin::read(const QString &fileName, QSettings *_settings)
 {
     using namespace Tiled;
 

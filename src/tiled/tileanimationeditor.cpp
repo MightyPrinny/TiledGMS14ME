@@ -40,6 +40,7 @@
 #include <QUndoStack>
 #include <QMimeData>
 #include <QSettings>
+#include <iostream>
 
 static const char * const FRAME_DURATION_KEY = "Animation/FrameDuration";
 

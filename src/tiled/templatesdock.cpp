@@ -49,6 +49,7 @@
 #include <QSplitter>
 #include <QToolBar>
 #include <QUndoStack>
+#include <QLineEdit>
 
 using namespace Tiled;
 using namespace Tiled::Internal;

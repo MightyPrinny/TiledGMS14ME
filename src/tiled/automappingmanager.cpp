@@ -174,7 +174,7 @@ bool AutomappingManager::loadFile(const QString &filePath)
         if (rulePath.endsWith(QLatin1String(".tmx"), Qt::CaseInsensitive)) {
             TmxMapFormat tmxFormat;
 
-            std::unique_ptr<Map> rules(tmxFormat.read(rulePath));
+			std::unique_ptr<Map> rules(tmxFormat.read(rulePath, nullptr));
 
             if (!rules) {
                 mError += tr("Opening rules map failed:\n%1").arg(

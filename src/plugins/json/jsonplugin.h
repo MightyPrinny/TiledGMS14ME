@@ -60,7 +60,7 @@ public:
 
     JsonMapFormat(SubFormat subFormat, QObject *parent = nullptr);
 
-    Tiled::Map *read(const QString &fileName) override;
+	Tiled::Map *read(const QString &fileName, QSettings *) override;
     bool supportsFile(const QString &fileName) const override;
 
     bool write(const Tiled::Map *map, const QString &fileName) override;

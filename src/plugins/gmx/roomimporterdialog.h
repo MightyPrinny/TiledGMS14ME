@@ -2,6 +2,7 @@
 
 #include <QDialog>
 #include <QAction>
+#include <QSettings>
 
 namespace Ui {
     class RoomImporterDialog;
@@ -25,6 +26,7 @@ namespace Gmx{
         RoomImporterDialog(QWidget *parent = nullptr, bool *oK = nullptr, ImporterSettings *settings = nullptr);
         ~RoomImporterDialog();
         ImporterSettings getSettings();
+		void setDefaultPaths(QSettings *appSettings);
     private slots:
         void on_buttonBox_accepted();
 

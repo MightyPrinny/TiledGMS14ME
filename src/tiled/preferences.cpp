@@ -76,6 +76,9 @@ Preferences::Preferences()
     // Retrieve interface settings
     mSettings->beginGroup(QLatin1String("Interface"));
     mExecutablePath = stringValue("ExecutablePath");
+	mGMProjectPath = stringValue("GMProjectPath");
+	mGenTemplatesOutDir = stringValue("GenTemplatesOutDir");
+
     mShowGrid = boolValue("ShowGrid", true);
     mShowQuads = boolValue("ShowQuads", true);
     mShowTileObjectOutlines = boolValue("ShowTileObjectOutlines");
@@ -322,6 +325,29 @@ void Preferences::browseExecutablePath()
     emit executablePathChanged(mExecutablePath);
     mSettings->setValue(QLatin1String("Interface/ExecutablePath"), mExecutablePath);
     return;
+}
+
+void Preferences::browseGMProjectPath()
+{
+	mGMProjectPath = QFileDialog::getExistingDirectory(nullptr, QLatin1String("Open a game maker project's directory"),
+													 QLatin1String(""),
+													 QFileDialog::ShowDirsOnly
+													 | QFileDialog::DontUseCustomDirectoryIcons);
+
+	emit gmProjectPathChanged(mGMProjectPath);
+	mSettings->setValue(QLatin1String("Interface/GMProjectPath"), mGMProjectPath);
+	return;
+}
+
+void Preferences::browseGenTemplateOutDir()
+{
+	mGenTemplatesOutDir = QFileDialog::getExistingDirectory(nullptr, QLatin1String("Choose the output directory for the templates folder"),
+													 QLatin1String(""),
+													 QFileDialog::ShowDirsOnly
+													 | QFileDialog::DontUseCustomDirectoryIcons);
+	emit genTemplatesOutDirChanged(mGenTemplatesOutDir);
+	mSettings->setValue(QLatin1String("Interface/GenTemplatesOutDir"), mGenTemplatesOutDir);
+	return;
 }
 
 void Preferences::setSnapToFineGrid(bool snapToFineGrid)

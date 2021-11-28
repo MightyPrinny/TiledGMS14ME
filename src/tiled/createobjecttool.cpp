@@ -41,6 +41,7 @@
 #include <QApplication>
 #include <QKeyEvent>
 #include <QPalette>
+#include <stdlib.h>
 
 using namespace Tiled;
 using namespace Tiled::Internal;
@@ -346,6 +347,7 @@ void CreateObjectTool::finishNewMapObject()
  */
 void CreateObjectTool::mouseMovedWhileCreatingObject(const QPointF &pos, Qt::KeyboardModifiers modifiers)
 {
+    using namespace std;
     bool useHalfGrid = modifiers == Qt::KeyboardModifier::ControlModifier;
     MapRenderer *renderer = mapDocument()->renderer();
     Preferences *prefs = Preferences::instance();

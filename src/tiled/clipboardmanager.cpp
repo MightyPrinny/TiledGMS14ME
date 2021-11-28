@@ -202,6 +202,7 @@ void ClipboardManager::pasteObjectGroup(const ObjectGroup *objectGroup,
                                         const MapView *view,
                                         PasteFlags flags)
 {
+    using namespace std;
     Layer *currentLayer = mapDocument->currentLayer();
     if (!currentLayer)
         return;

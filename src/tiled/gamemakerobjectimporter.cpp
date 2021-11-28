@@ -11,6 +11,8 @@
 #include "rapidxml_iterators.hpp"
 #include <QDebug>
 #include <stack>
+#include <QCoreApplication>
+
 GameMakerObjectImporter::GameMakerObjectImporter(QWidget *wd)
 {
     this->prtWidget = wd;
@@ -18,7 +20,7 @@ GameMakerObjectImporter::GameMakerObjectImporter(QWidget *wd)
 
 void GameMakerObjectImporter::run()
 {
-    this->generateTemplates();
+	this->showGenerateTemplatesDialog(prtWidget);
 }
 
 void GameMakerObjectImporter::generateTemplatesInThread()
@@ -105,7 +107,7 @@ void GameMakerObjectImporter::mapChilds(rapidxml::xml_node<>* node, std::unorder
     }
     itNode = node->first_node("objects");
     while(itNode)
-    {
+	{
         mapChilds(itNode,objectFolderMap);
         itNode=itNode->next_sibling("objects");
     }
@@ -132,38 +134,52 @@ void GameMakerObjectImporter::mapObjectsToFolders(QString &projectFilePath, std:
 
 }
 
-void GameMakerObjectImporter::generateTemplates()
+void GameMakerObjectImporter::showGenerateTemplatesDialog(QWidget* prt)
 {
-    QString dir = QFileDialog::getExistingDirectory(prtWidget, QLatin1String("Open a Directory with the Objects and Sprites folders from the game maker project"),
-                                                      QLatin1String(""),
-                                                      QFileDialog::ShowDirsOnly
-                                                      | QFileDialog::DontUseCustomDirectoryIcons);
-    if(dir.isEmpty())
+	auto diag = new MMGenerateTemplatesDialog(prt);
+	diag->importer = this;
+	prtWidget = diag;
+	//diag->setWindowModality(Qt::WindowModal);
+	//diag->setModal(true);
+	diag->exec();
+	delete diag;
+}
+
+void GameMakerObjectImporter::generateTemplates(QString dir, QString outputDirPath)
+{
+	if(dir.isEmpty() || outputDirPath.isEmpty())
     {
-        printf("empty dir");
+		printf("Generate Templates: a path was empty");
         return;
     }
 
 
     using namespace rapidxml;
     using namespace std;
-
+	bool valid = true;
     //Directories
     QDir rootDir =  QDir(dir);
-    rootDir.cd(QLatin1String("objects"));
+	valid &= rootDir.cd(QLatin1String("objects"));
     QDir objectDir =  QDir(rootDir.path());
-    rootDir.cdUp();
-    rootDir.cd(QLatin1String("sprites"));
+	rootDir.cdUp();
+	valid &= rootDir.cd(QLatin1String("sprites"));
     QDir spriteDir =  QDir(rootDir.path());
-    rootDir.cd(QLatin1String("images"));
+	valid &= rootDir.cd(QLatin1String("images"));
     QDir imageDir =  QDir(rootDir.path());
     rootDir.cdUp();
     rootDir.cdUp();
-    rootDir.mkdir(QLatin1String("templates"));
-    rootDir.cd(QLatin1String("templates"));
 
-    QDir templateDir = QDir(rootDir.path());
-    rootDir.cdUp();
+	QDir outputDir = QDir(outputDirPath);
+	outputDir .mkdir(QLatin1String("templates"));
+	valid &= outputDir .cd(QLatin1String("templates"));
+	QDir templateDir = QDir(outputDir.path());
+	outputDir.cdUp();
+
+	if(!valid)
+	{
+		qDebug() << "Invalid directory";
+		return;
+	}
 
     objectDir.setFilter(QDir::Files | QDir::Hidden | QDir::NoSymLinks);
     objectDir.setSorting(QDir::Size | QDir::Reversed);
@@ -173,14 +189,18 @@ void GameMakerObjectImporter::generateTemplates()
     int totalObjects =objectFileInfo.size();
 
     //Progress Bar
-    QProgressDialog *progress = new QProgressDialog(prtWidget);
-    progress->setWindowModality(Qt::ApplicationModal);
-    progress->setLabelText(QLatin1String(""));
-    progress->setCancelButtonText(QLatin1String("Abort"));
-    progress->setMinimum(0);
-    progress->setMaximum(totalObjects);
-    progress->setWindowFlags(Qt::WindowMinMaxButtonsHint);
-    progress->show();
+	QProgressDialog progress(nullptr);
+
+	progress.setLabelText(QLatin1String("Generating Templates"));
+	progress.setCancelButtonText(QLatin1String("Abort"));
+	progress.setMinimum(0);
+	progress.setMaximum(totalObjects);
+	progress.setWindowFlags(Qt::WindowMinMaxButtonsHint);
+	progress.setWindowModality(Qt::ApplicationModal);
+	progress.show();
+	progress.setValue(0);
+	QCoreApplication::processEvents();
+	//progress->repaint();
 
     QString projectFilePath = str("");
     unordered_map<string,string> *objectFolderMap = new unordered_map<string,string>();
@@ -211,12 +231,12 @@ void GameMakerObjectImporter::generateTemplates()
 
     QString undefined = QLatin1String("&lt;undefined&gt;");
 
-    QFile *imageCollection = new QFile(rootDir.path().append(QLatin1String("/images.tsx")));
+	QFile *imageCollection = new QFile(outputDir.path().append(QLatin1String("/images.tsx")));
     imageCollection->open(QIODevice::WriteOnly | QIODevice::Text);
     imageCollection->flush();
 
-    QString typesDir = rootDir.path().append(QLatin1String("/types.xml"));
-    QString imageCollectionPath = templateDir.relativeFilePath(rootDir.path().append(QLatin1String("/images.tsx")));
+	QString typesDir = outputDir.path().append(QLatin1String("/types.xml"));
+	QString imageCollectionPath = templateDir.relativeFilePath(outputDir.path().append(QLatin1String("/images.tsx")));
 
     QVector<imageEntry*>* imageList = new QVector<imageEntry*>();
     imageList->reserve(totalObjects);
@@ -244,8 +264,13 @@ void GameMakerObjectImporter::generateTemplates()
 
     //Loop through object files
     for (int i = 0; i < totalObjects; ++i) {
-        progress->setValue(i);
-        if(progress->wasCanceled())
+		if((i%32) == 0)
+		{
+			progress.setValue(i);
+			QCoreApplication::processEvents();
+
+		}
+		if(progress.wasCanceled())
             break;
 
         QFileInfo fileInfo = objectFileInfo.at(i);
@@ -264,8 +289,11 @@ void GameMakerObjectImporter::generateTemplates()
         }
 
 
-        if(!auxDoc.first_node("object"))
+		if(!auxDoc.first_node("object")) {
+
             qDebug()<<"critical error";
+			break;
+		}
         xml_node<> *auxNode = auxDoc.first_node("object")->first_node("spriteName");
         //Object info
         QString objectName = fileInfo.baseName();//objectDir.relativeFilePath(fileInfo.filePath()).chopped(11);
@@ -286,7 +314,7 @@ void GameMakerObjectImporter::generateTemplates()
 
         if(spriteName == QLatin1String("<undefined>") || spriteName==undefined || spriteName.isEmpty())
         {
-            qDebug()<<"Object doesn't have a sprite, skipping...";
+			//qDebug()<<"Object doesn't have a sprite, skipping...";
             auxDoc.clear();
             continue;
         }
@@ -297,7 +325,7 @@ void GameMakerObjectImporter::generateTemplates()
         }
         QString spr = QString(spriteName);
 
-        QString imageFileDir = imageDir.relativeFilePath(spriteName.append(QLatin1String("_0.png")));
+		QString imageFileDir = outputDir.relativeFilePath( imageDir.filePath(spriteName.append(QLatin1String("_0.png"))));
         theFile.close();
         auxDoc.clear();
         theFile = ifstream(spriteFile->fileName().toStdString().c_str());
@@ -352,14 +380,14 @@ void GameMakerObjectImporter::generateTemplates()
 
             }
         }
-        QString templatePoth = templateDir.path().append(subFolders);
+		QString templatePath = templateDir.path().append(subFolders);
 
         //QString templatePoth=templateDir.path().append(QLatin1String("/")).append(objectName).append(QLatin1String(".tx"));
-        imageCollectionPath = QDir(templatePoth).relativeFilePath(rootDir.path().append(QLatin1String("/images.tsx")));
-        templatePoth = templatePoth.append(str("/").append(objectName).append(str(".tx")));
+		imageCollectionPath = QDir(templatePath).relativeFilePath(outputDir.path().append(QLatin1String("/images.tsx")));
+		templatePath = templatePath.append(str("/").append(objectName).append(str(".tx")));
         auxDoc.clear();
-        templateDir.mkpath(QFileInfo(templatePoth).absolutePath());
-        QFile templateFile(templatePoth);
+		templateDir.mkpath(QFileInfo(templatePath).absolutePath());
+		QFile templateFile(templatePath);
         if(true)
         {
 
@@ -597,8 +625,7 @@ void GameMakerObjectImporter::generateTemplates()
     delete imageList;
     delete objectFolderMap;
     delete imageIDMap;
-    progress->close();
-    delete progress;
+	progress.close();
 
 }
 
@@ -623,7 +650,7 @@ int GameMakerObjectImporter::addImage(QString &filename,QString &fileDir,int wid
     auto find = idmap->find(filename.toStdString());
     if(find==idmap->end())
     {
-        imageEntry *img = new imageEntry(fileDir,QString(QLatin1String("sprites/images/")).append(fileDir),width,heigth);
+		imageEntry *img = new imageEntry(fileDir, fileDir,width,heigth);
         list->append(img);
         rval = list->size()-1;
         idmap->emplace(make_pair(filename.toStdString(),rval));

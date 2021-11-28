@@ -38,7 +38,7 @@ TmxMapFormat::TmxMapFormat(QObject *parent)
 {
 }
 
-Map *TmxMapFormat::read(const QString &fileName)
+Map *TmxMapFormat::read(const QString &fileName, QSettings *_settings)
 {
     mError.clear();
 

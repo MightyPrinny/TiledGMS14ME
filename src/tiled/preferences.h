@@ -58,6 +58,8 @@ public:
     qreal objectLineWidth() const { return mObjectLineWidth; }
     QSize snapGrid();
     QString executablePath(){return mExecutablePath;}
+	QString gmProjectPath(){return mGMProjectPath;}
+	QString genTemplatesOutDir(){return mGenTemplatesOutDir;}
 
     bool highlightCurrentLayer() const { return mHighlightCurrentLayer; }
     bool highlightHoveredObject() const;
@@ -168,6 +170,8 @@ public:
 
 public slots:
     void browseExecutablePath();
+	void browseGMProjectPath();
+	void browseGenTemplateOutDir();
     void setShowGrid(bool showGrid);
     void setShowQuads(bool showQuads);
     void setShowTileObjectOutlines(bool enabled);
@@ -208,6 +212,9 @@ signals:
     void objectLabelVisibilityChanged(ObjectLabelVisiblity);
     void labelForHoveredObjectChanged(bool enabled);
     void executablePathChanged(QString path);
+	void gmProjectPathChanged(QString path);
+	void genTemplatesOutDirChanged(QString path);
+
 
     void applicationStyleChanged(ApplicationStyle);
     void baseColorChanged(const QColor &baseColor);
@@ -275,6 +282,9 @@ private:
     bool mAutoMapDrawing;
 
     QString mExecutablePath;
+	QString mGMProjectPath;
+	QString mGenTemplatesOutDir;
+
     QString mMapsDirectory;
     QString mStampsDirectory;
     QString mTemplatesDirectory;

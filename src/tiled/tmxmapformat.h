@@ -42,7 +42,7 @@ class TmxMapFormat : public MapFormat
 public:
     TmxMapFormat(QObject *parent = nullptr);
 
-    Map *read(const QString &fileName) override;
+	Map *read(const QString &fileName, QSettings *) override;
 
     bool write(const Map *map, const QString &fileName) override;
 

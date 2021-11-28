@@ -11,6 +11,7 @@
 #include <unordered_map>
 #include <string>
 #include "rapidxml.hpp"
+#include <mmgeneratetemplatesdialog.h>
 using namespace Tiled;
 
 
@@ -35,7 +36,8 @@ class GameMakerObjectImporter : public QThread
     Q_OBJECT
 public:
     GameMakerObjectImporter(QWidget *wd);
-    void generateTemplates();
+	void showGenerateTemplatesDialog(QWidget* prt);
+	void generateTemplates(QString dir, QString outputDir);
     void generateTemplatesInThread();
 protected:
     void run() override;

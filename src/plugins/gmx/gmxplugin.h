@@ -24,6 +24,7 @@
 #include "gmx_global.h"
 #include <QIODevice>
 #include <QDir>
+#include <QImage>
 #include <unordered_map>
 
 namespace Gmx {
@@ -38,9 +39,9 @@ public:
     GmxPlugin();
     void writeAttribute(QString &qualifiedName, QString &value, QIODevice* d, QTextCodec* codec);
     static void mapTemplates(std::unordered_map<std::string,std::string> *map, QDir &root );
-    Tiled::Map *read(const QString &fileName) override;
-    bool supportsFile(const QString &fileName) const override;
-    bool write(const Tiled::Map *map, const QString &fileName) override;
+	Tiled::Map *read(const QString &fileName, QSettings *) override;
+	bool supportsFile(const QString &fileName) const override;
+	bool write(const Tiled::Map *map, const QString &fileName) override;
     QString errorString() const override;
     QString shortName() const override;
 

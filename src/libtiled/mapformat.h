@@ -34,6 +34,7 @@
 #include <QObject>
 #include <QStringList>
 #include <QMap>
+#include <QSettings>
 
 namespace Tiled {
 
@@ -67,7 +68,7 @@ public:
     /**
      * Reads the map and returns a new Map instance, or 0 if reading failed.
      */
-    virtual Map *read(const QString &fileName) = 0;
+	virtual Map *read(const QString &fileName, QSettings *mSettings) = 0;
 
     /**
      * Writes the given \a map based on the suggested \a fileName.
@@ -79,7 +80,8 @@ public:
      * @return <code>true</code> on success, <code>false</code> when an error
      *         occurred. The error can be retrieved by errorString().
      */
-    virtual bool write(const Map *map, const QString &fileName) = 0;
+	virtual bool write(const Map *map, const QString &fileName) = 0;
+
 };
 
 } // namespace Tiled
@@ -101,7 +103,7 @@ public:
         : MapFormat(parent)
     {}
     Capabilities capabilities() const override { return Read; }
-    bool write(const Map *, const QString &) override { return false; }
+	bool write(const Map *, const QString &) override { return false; }
 };
 
 
@@ -119,7 +121,7 @@ public:
     {}
 
     Capabilities capabilities() const override { return Write; }
-    Map *read(const QString &) override { return nullptr; }
+	Map *read(const QString &, QSettings *) override { return nullptr; }
     bool supportsFile(const QString &) const override { return false; }
 };
 
@@ -128,8 +130,8 @@ public:
  * Attempt to read the given map using any of the map formats added
  * to the plugin manager, falling back to the TMX format if none are capable.
  */
-TILEDSHARED_EXPORT Map *readMap(const QString &fileName,
-                                QString *error = nullptr);
+TILEDSHARED_EXPORT Map *readMap(const QString &fileName,QSettings * settings,
+								QString *error = nullptr);
 
 /**
  * Attempts to find a map format supporting the given file.

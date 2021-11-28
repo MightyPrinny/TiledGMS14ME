@@ -153,7 +153,7 @@ MapDocumentPtr MapDocument::load(const QString &fileName,
                                  MapFormat *format,
                                  QString *error)
 {
-    Map *map = format->read(fileName);
+	Map *map = format->read(fileName, Preferences::instance()->settings());
 
     if (!map) {
         if (error)

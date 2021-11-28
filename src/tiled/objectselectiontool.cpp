@@ -1161,7 +1161,7 @@ void ObjectSelectionTool::updateMovingItems(const QPointF &pos,
     MapRenderer *renderer = mapDocument()->renderer();
     const QPointF diff = snapToGrid(pos - mStart, modifiers);
     Preferences *prefs = Preferences::instance();
-
+    using namespace std;
     for (const MovingObject &object : qAsConst(mMovingObjects)) {
 
         QPointF po(0,0);

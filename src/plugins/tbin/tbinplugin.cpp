@@ -102,7 +102,7 @@ TbinMapFormat::TbinMapFormat(QObject *)
 {
 }
 
-Tiled::Map *TbinMapFormat::read(const QString &fileName)
+Tiled::Map *TbinMapFormat::read(const QString &fileName, QSettings *_settings)
 {
     std::ifstream file( fileName.toStdString(), std::ios::in | std::ios::binary );
     if (!file) {

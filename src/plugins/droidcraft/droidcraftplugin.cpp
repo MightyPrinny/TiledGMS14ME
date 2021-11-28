@@ -36,7 +36,7 @@ DroidcraftPlugin::DroidcraftPlugin()
 }
 
 // Reader
-Tiled::Map *DroidcraftPlugin::read(const QString &fileName)
+Tiled::Map *DroidcraftPlugin::read(const QString &fileName, QSettings *settings)
 {
     using namespace Tiled;
 

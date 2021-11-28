@@ -341,7 +341,7 @@ int main(int argc, char *argv[])
         }
 
         // Load the source file
-        const std::unique_ptr<Map> map(readMap(sourceFile, nullptr));
+		const std::unique_ptr<Map> map(readMap(sourceFile, nullptr, nullptr));
         if (!map) {
             qWarning().noquote() << QCoreApplication::translate("Command line", "Failed to load source map.");
             return 1;

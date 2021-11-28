@@ -8,6 +8,7 @@ TiledPlugin {
     Depends { name: "Qt"; submodules: ["widgets"] }
 
     condition: {
+        return false;
         if (qbs.targetOS.contains("windows"))
             return File.exists(Environment.getEnv("PYTHONHOME"));
 

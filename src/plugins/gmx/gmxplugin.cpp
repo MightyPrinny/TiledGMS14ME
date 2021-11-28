@@ -51,6 +51,7 @@
 #include <string.h>
 #include <unordered_map>
 #include <qmath.h>
+#include <stdlib.h>
 
 #include "roomimporterdialog.h"
 
@@ -321,7 +322,7 @@ void GmxPlugin::writeAttribute(QString &qualifiedName, QString &value, QIODevice
     wrt("\"",d,codec);
 }
 
-Tiled::Map *GmxPlugin::read(const QString &fileName)
+Tiled::Map *GmxPlugin::read(const QString &fileName, QSettings *appSettings)
 {
     using namespace rapidxml;
     using namespace std;
@@ -342,6 +343,15 @@ Tiled::Map *GmxPlugin::read(const QString &fileName)
     };
     bool accepted = false;
     RoomImporterDialog *sDialog = new RoomImporterDialog(nullptr,&accepted,&settings);
+	{
+	//	Preferences* prefs = Preferences::instance();
+		//sDialog->setDefaultPaths(prefs->gmProjectPath(), prefs->genTemplatesOutDir());
+	}
+	if(appSettings != nullptr)
+	{
+		sDialog->setDefaultPaths(appSettings);
+	}
+
     sDialog->exec();
 
     delete sDialog;
@@ -460,7 +470,6 @@ Tiled::Map *GmxPlugin::read(const QString &fileName)
 
 
     //Import Objects using templates
-
     Tiled::ObjectGroup *objects;
 
     if(instance)
@@ -581,8 +590,33 @@ Tiled::Map *GmxPlugin::read(const QString &fileName)
             }
             else
             {
-                qDebug()<<QString("Bad template or file doesn't exist: ").append(objName).toStdString().c_str();
-                qDebug()<<tempath;
+				int originX = 0;
+				int originY = 0;
+
+				double rotation = QString(instance->first_attribute("rotation")->value()).toDouble() *-1;
+				double scaleX = QString(instance->first_attribute("scaleX")->value()).toDouble();
+				double scaleY = QString(instance->first_attribute("scaleY")->value()).toDouble();
+
+				QPointF origin = QPointF(-originX*abs(scaleX),-originY*abs(scaleY));
+
+				QTransform transform;
+				transform.rotate(rotation);
+				pos += transform.map(origin);
+
+				MapObject *obj = new MapObject(QString(""),objName,pos,QSizeF(8,8));
+
+				obj->setProperty(QString("code"),code);
+
+				if(scaleX<0)
+					obj->flip(FlipHorizontally,pos);
+				if(scaleY<0)
+					obj->flip(FlipVertically,pos);
+				obj->setRotation(rotation);
+
+				obj->setSize(QSizeF(8*abs(scaleX),8*abs(scaleY)));
+
+
+				objects->addObject(obj);
                 continue;
             }
         }
@@ -1093,7 +1127,7 @@ bool GmxPlugin::write(const Map *map, const QString &fileName)
                 // For tile objects we can support scaling and flipping, though
                 // flipping in combination with rotation doesn't work in GameMaker.
 
-
+                using namespace std;
                 if (auto tile = object->cell().tile()) {
                     const QSize tileSize = tile->size();
                     if(imageWidth==-1||imageHeigth==-1)

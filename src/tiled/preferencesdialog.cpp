@@ -82,6 +82,11 @@ PreferencesDialog::PreferencesDialog(QWidget *parent)
 
     QString poth = preferences->executablePath();
     mUi->exePath->setText(poth);
+	poth = preferences->gmProjectPath();
+	mUi->gmProjectDir->setText(poth);
+	poth = preferences->genTemplatesOutDir();
+	mUi->genTemplatesOutDir->setText(poth);
+
 
     connect(mUi->enableDtd, &QCheckBox::toggled,
             preferences, &Preferences::setDtdEnabled);
@@ -106,10 +111,21 @@ PreferencesDialog::PreferencesDialog(QWidget *parent)
             preferences, &Preferences::setUseOpenGL);
     connect(mUi->wheelZoomsByDefault, &QCheckBox::toggled,
             preferences, &Preferences::setWheelZoomsByDefault);
-    connect(mUi->exeBrowse, &QToolButton::clicked,
+
+	connect(mUi->exeBrowse, &QToolButton::clicked,
             preferences, &Preferences::browseExecutablePath);
-    connect(preferences, &Preferences::executablePathChanged,
+	connect(preferences, &Preferences::executablePathChanged,
             this, &PreferencesDialog::executablePathChanged);
+
+	connect(mUi->genTemplatesOutDirBrowse, &QToolButton::clicked,
+			preferences, &Preferences::browseGenTemplateOutDir);
+	connect(preferences, &Preferences::genTemplatesOutDirChanged,
+			this, &PreferencesDialog::genTemplatesDirChanged);
+
+	connect(mUi->gmProjectBrowse, &QToolButton::clicked,
+			preferences, &Preferences::browseGMProjectPath);
+	connect(preferences, &Preferences::gmProjectPathChanged,
+			this, &PreferencesDialog::gmProjectPathChanged);
 
     connect(mUi->styleCombo, static_cast<void(QComboBox::*)(int)>(&QComboBox::currentIndexChanged),
             this, &PreferencesDialog::styleComboChanged);
@@ -240,3 +256,14 @@ void PreferencesDialog::executablePathChanged(QString path)
 {
     mUi->exePath->setText(path);
 }
+
+void PreferencesDialog::gmProjectPathChanged(QString path)
+{
+	mUi->gmProjectDir->setText(path);
+}
+
+void PreferencesDialog::genTemplatesDirChanged(QString path)
+{
+	mUi->genTemplatesOutDir->setText(path);
+}
+

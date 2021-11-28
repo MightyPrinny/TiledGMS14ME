@@ -170,6 +170,8 @@ private slots:
 
     void ensureHasBorderInFullScreen();
 
+    void on_actionObjTileAnimationToObjLayerAnimation_triggered();
+
 private:
     /**
       * Asks the user whether the given \a mapDocument should be saved, when

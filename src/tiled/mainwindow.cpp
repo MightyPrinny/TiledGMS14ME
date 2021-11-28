@@ -1014,10 +1014,16 @@ void MainWindow::run()
         dir.cdUp();
         //QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
         gameProcess->setWorkingDirectory(dir.path());
-        std::cout << dir.path().toStdString();
+        //std::cout << dir.path().toStdString();
+#ifndef Q_OS_LINUX
         gameProcess->setProgram(app);
         gameProcess->setArguments(QStringList() << lastExport);
         gameProcess->start();
+#else
+        QString command = QString(QLatin1String("wine ")).append(app).append(QString(QLatin1String(" ")).append(lastExport));
+        gameProcess->start(command);
+
+#endif
         connect(gameProcess, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, &MainWindow::gameClosed);
 
     }
@@ -1026,7 +1032,7 @@ void MainWindow::run()
 void MainWindow::generateTemplates()
 {
     std::unique_ptr<GameMakerObjectImporter> helper(new GameMakerObjectImporter(this));
-    helper->generateTemplates();
+	helper->showGenerateTemplatesDialog(this);
 }
 
 void MainWindow::fixObjectImages()
@@ -1612,6 +1618,7 @@ void MainWindow::updateActions()
     mUi->actionRun->setVisible(mapDocument);
     mUi->actionAddMusic->setVisible(mapDocument);
     mUi->menuMap->menuAction()->setVisible(mapDocument);
+
     mUi->actionAddExternalTileset->setEnabled(mapDocument);
     mUi->actionResizeMap->setEnabled(mapDocument);
     mUi->actionOffsetMap->setEnabled(mapDocument);
@@ -1880,3 +1887,8 @@ void MainWindow::reloadError(const QString &error)
     QMessageBox::critical(this, tr("Error Reloading Map"), error);
 }
 
+
+void Tiled::Internal::MainWindow::on_actionObjTileAnimationToObjLayerAnimation_triggered()
+{
+
+}
