@@ -46,6 +46,7 @@
 #include <QUndoStack>
 
 #include <QtMath>
+#include <QDebug>
 
 using namespace Tiled;
 using namespace Tiled::Internal;
@@ -390,7 +391,107 @@ void AbstractObjectTool::changeTile()
     if (!currentMapDocument->map()->tilesets().contains(sharedTileset))
         new AddTileset(currentMapDocument, sharedTileset, changeMapObjectCommand);
 
-    currentMapDocument->undoStack()->push(changeMapObjectCommand);
+	currentMapDocument->undoStack()->push(changeMapObjectCommand);
+}
+
+template <typename T>
+static T optionalProperty(const Object *object, const QString &name, const T &def)
+{
+	QVariant var = object->inheritedProperty(name);
+	return var.isValid() ? var.value<T>() : def;
+}
+
+void AbstractObjectTool::computeGMSCoordinates()
+{
+	using namespace Tiled;
+	auto doc = mapDocument();
+	auto objects = doc->selectedObjects();
+	for(int i=0; i<objects.size(); ++i)
+	{
+		MapObject *obj = objects[i];
+		if(!obj)
+			continue;
+
+		if(!obj->inheritedProperty(QStringLiteral("originX")).isValid())
+		{
+			continue;
+		}
+
+		qDebug() << "Ass";
+
+		QPointF pos = obj->position();
+		qreal scaleX = 1;
+		qreal scaleY = 1;
+		qreal imageWidth = optionalProperty(obj,QStringLiteral("imageWidth"),-1);
+		qreal imageHeigth = optionalProperty(obj,QStringLiteral("imageHeight"),-1);
+
+		QPointF origin(optionalProperty(obj, QStringLiteral("originX"), 0.0),
+					   optionalProperty(obj, QStringLiteral("originY"), 0.0));
+
+		if (!obj->cell().isEmpty()) {
+			// For tile objects we can support scaling and flipping, though
+			// flipping in combination with rotation doesn't work in GameMaker.
+
+			using namespace std;
+			if (auto tile = obj->cell().tile()) {
+				const QSize tileSize = tile->size();
+				if(imageWidth==-1||imageHeigth==-1)
+				{
+					imageHeigth=tileSize.height();
+					imageWidth=tileSize.width();
+				}
+				scaleX = abs(obj->width() / imageWidth) ;
+				scaleY = abs(obj->height() / imageHeigth);
+
+
+				if (obj->cell().flippedHorizontally()) {
+					scaleX *= -1;
+					//origin += QPointF((object->width()*scaleX) - 2 * origin.x(), 0);
+				}
+				if (obj->cell().flippedVertically()) {
+					scaleY *= -1;
+					//origin += QPointF(0, (object->height()*scaleY) - 2 * origin.y());
+				}
+				if(scaleX>=0){
+					origin.setX(origin.x()*scaleX);
+				}
+				else{
+					origin.setX((imageWidth*abs(scaleX))-(origin.x()*abs(scaleX)));
+				}
+
+				if(scaleY>=0){
+					origin.setY(origin.y()*scaleY);
+				}
+				else{
+					origin.setY((imageHeigth*abs(scaleY))-(origin.y()*abs(scaleY)));
+				}
+			}
+			// Tile objects have bottom-left origin in Tiled, so the
+			// position needs to be translated for top-left origin in
+			// GameMaker, taking into account the rotation.
+			origin += QPointF(0, -obj->height());
+
+
+		}
+		else if(imageWidth!=-1 && imageHeigth!=-1){
+			scaleX = obj->width() / imageWidth;
+			scaleY = obj->height() / imageHeigth;
+		}
+		// Allow overriding the scale using custom properties
+		scaleX = optionalProperty(obj, QStringLiteral("scaleX"), scaleX);
+		scaleY = optionalProperty(obj, QStringLiteral("scaleY"), scaleY);
+
+		// Adjust the position based on the origin
+		QTransform transform;
+		transform.rotate(obj->rotation());
+		pos += transform.map(origin);
+
+
+
+		doc->setProperty(obj, QStringLiteral("gmsX"), qRound(pos.x()));
+		doc->setProperty(obj, QStringLiteral("gmsY"), qRound(pos.y()));
+
+	}
 }
 
 void AbstractObjectTool::flipHorizontally()
@@ -474,6 +575,7 @@ void AbstractObjectTool::showContextMenu(MapObject *clickedObject,
 
     // Create action for replacing an object with a template
     auto replaceTemplateAction = menu.addAction(tr("Replace With Template"), this, SLOT(replaceObjectsWithTemplate()));
+	menu.addAction(tr("Compute GMS Coordinates"), this, SLOT(computeGMSCoordinates()));
     auto selectedTemplate = objectTemplate();
 
     if (selectedTemplate) {
