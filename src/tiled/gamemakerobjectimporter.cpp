@@ -483,9 +483,11 @@ void GameMakerObjectImporter::generateTemplates(QString dir, QString outputDirPa
 						templateWriter.writeAttribute(QStringLiteral("value"),QStringLiteral(""));
 					templateWriter.writeEndElement();
 
-					templateWriter.writeEndElement();
-
 				templateWriter.writeEndElement();
+
+
+
+			templateWriter.writeEndElement();
 
             templateWriter.writeEndDocument();
 
@@ -542,72 +544,165 @@ void GameMakerObjectImporter::generateTemplates(QString dir, QString outputDirPa
 
      }
 
+	//DEFAULT TYPES
 
+	//ROOM VIEW
 	typesWriter.writeStartElement(QStringLiteral("objecttype"));
-	typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("view"));
-	typesWriter.writeAttribute(QStringLiteral("color"),QStringLiteral("#9c48a4"));
+		typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("t_gmRoomView"));
+		typesWriter.writeAttribute(QStringLiteral("color"),QStringLiteral("#9c48a4"));
 
-	typesWriter.writeStartElement(QStringLiteral("property"));
-	typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("hborder"));
-	typesWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("int"));
-	typesWriter.writeAttribute(QStringLiteral("default"),QStringLiteral("9999"));
-    typesWriter.writeEndElement();
+		typesWriter.writeStartElement(QStringLiteral("property"));
+			typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("visible"));
+			typesWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("bool"));
+			typesWriter.writeAttribute(QStringLiteral("default"),QStringLiteral("false"));
+		typesWriter.writeEndElement();
 
-	typesWriter.writeStartElement(QStringLiteral("property"));
-	typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("hport"));
-	typesWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("int"));
-	typesWriter.writeAttribute(QStringLiteral("default"),QStringLiteral("224"));
-    typesWriter.writeEndElement();
+		typesWriter.writeStartElement(QStringLiteral("property"));
+			typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("xview"));
+			typesWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("int"));
+			typesWriter.writeAttribute(QStringLiteral("default"),QStringLiteral("0"));
+		typesWriter.writeEndElement();
 
-	typesWriter.writeStartElement(QStringLiteral("property"));
-	typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("hview"));
-	typesWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("int"));
-	typesWriter.writeAttribute(QStringLiteral("default"),QStringLiteral("224"));
-    typesWriter.writeEndElement();
+		typesWriter.writeStartElement(QStringLiteral("property"));
+			typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("yview"));
+			typesWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("int"));
+			typesWriter.writeAttribute(QStringLiteral("default"),QStringLiteral("0"));
+		typesWriter.writeEndElement();
 
-	typesWriter.writeStartElement(QStringLiteral("property"));
-	typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("vborder"));
-	typesWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("int"));
-	typesWriter.writeAttribute(QStringLiteral("default"),QStringLiteral("9999"));
-    typesWriter.writeEndElement();
+		typesWriter.writeStartElement(QStringLiteral("property"));
+			typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("wview"));
+			typesWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("int"));
+			typesWriter.writeAttribute(QStringLiteral("default"),QStringLiteral("640"));
+		typesWriter.writeEndElement();
 
-	typesWriter.writeStartElement(QStringLiteral("property"));
-	typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("wport"));
-	typesWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("int"));
-	typesWriter.writeAttribute(QStringLiteral("default"),QStringLiteral("256"));
-    typesWriter.writeEndElement();
+		typesWriter.writeStartElement(QStringLiteral("property"));
+			typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("hview"));
+			typesWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("int"));
+			typesWriter.writeAttribute(QStringLiteral("default"),QStringLiteral("480"));
+		typesWriter.writeEndElement();
 
-	typesWriter.writeStartElement(QStringLiteral("property"));
-	typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("wview"));
-	typesWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("int"));
-	typesWriter.writeAttribute(QStringLiteral("default"),QStringLiteral("256"));
-    typesWriter.writeEndElement();
 
-	typesWriter.writeStartElement(QStringLiteral("property"));
-	typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("xport"));
-	typesWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("int"));
-	typesWriter.writeAttribute(QStringLiteral("default"),QStringLiteral("0"));
-    typesWriter.writeEndElement();
+		typesWriter.writeStartElement(QStringLiteral("property"));
+			typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("xport"));
+			typesWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("int"));
+			typesWriter.writeAttribute(QStringLiteral("default"),QStringLiteral("0"));
+		typesWriter.writeEndElement();
 
-	typesWriter.writeStartElement(QStringLiteral("property"));
-	typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("xview"));
-	typesWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("int"));
-	typesWriter.writeAttribute(QStringLiteral("default"),QStringLiteral("0"));
-    typesWriter.writeEndElement();
+		typesWriter.writeStartElement(QStringLiteral("property"));
+			typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("yport"));
+			typesWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("int"));
+			typesWriter.writeAttribute(QStringLiteral("default"),QStringLiteral("0"));
+		typesWriter.writeEndElement();
 
-	typesWriter.writeStartElement(QStringLiteral("property"));
-	typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("yport"));
-	typesWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("int"));
-	typesWriter.writeAttribute(QStringLiteral("default"),QStringLiteral("0"));
-    typesWriter.writeEndElement();
+		typesWriter.writeStartElement(QStringLiteral("property"));
+			typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("wport"));
+			typesWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("int"));
+			typesWriter.writeAttribute(QStringLiteral("default"),QStringLiteral("640"));
+		typesWriter.writeEndElement();
 
-	typesWriter.writeStartElement(QStringLiteral("property"));
-	typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("yview"));
-	typesWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("int"));
-	typesWriter.writeAttribute(QStringLiteral("default"),QStringLiteral("0"));
-    typesWriter.writeEndElement();
+		typesWriter.writeStartElement(QStringLiteral("property"));
+			typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("hport"));
+			typesWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("int"));
+			typesWriter.writeAttribute(QStringLiteral("default"),QStringLiteral("480"));
+		typesWriter.writeEndElement();
 
-    typesWriter.writeEndElement();
+
+		typesWriter.writeStartElement(QStringLiteral("property"));
+			typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("hborder"));
+			typesWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("int"));
+			typesWriter.writeAttribute(QStringLiteral("default"),QStringLiteral("32"));
+		typesWriter.writeEndElement();
+
+		typesWriter.writeStartElement(QStringLiteral("property"));
+			typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("vborder"));
+			typesWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("int"));
+			typesWriter.writeAttribute(QStringLiteral("default"),QStringLiteral("32"));
+		typesWriter.writeEndElement();
+
+		typesWriter.writeStartElement(QStringLiteral("property"));
+			typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("vborder"));
+			typesWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("int"));
+			typesWriter.writeAttribute(QStringLiteral("default"),QStringLiteral("32"));
+		typesWriter.writeEndElement();
+
+		typesWriter.writeStartElement(QStringLiteral("property"));
+			typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("hspeed"));
+			typesWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("float"));
+			typesWriter.writeAttribute(QStringLiteral("default"),QStringLiteral("-1"));
+		typesWriter.writeEndElement();
+
+		typesWriter.writeStartElement(QStringLiteral("property"));
+			typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("vspeed"));
+			typesWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("float"));
+			typesWriter.writeAttribute(QStringLiteral("default"),QStringLiteral("-1"));
+		typesWriter.writeEndElement();
+
+	typesWriter.writeEndElement();//ROOM VIEW
+
+	//ROOM BACKGROUND
+	typesWriter.writeStartElement(QStringLiteral("objecttype"));
+		typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("t_gmRoomBackground"));
+		typesWriter.writeAttribute(QStringLiteral("color"),QStringLiteral("#0048a4"));
+
+		typesWriter.writeStartElement(QStringLiteral("property"));
+			typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("visible"));
+			typesWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("bool"));
+			typesWriter.writeAttribute(QStringLiteral("default"),QStringLiteral("false"));
+		typesWriter.writeEndElement();
+
+		typesWriter.writeStartElement(QStringLiteral("property"));
+			typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("foreground"));
+			typesWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("bool"));
+			typesWriter.writeAttribute(QStringLiteral("default"),QStringLiteral("false"));
+		typesWriter.writeEndElement();
+
+		typesWriter.writeStartElement(QStringLiteral("property"));
+			typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("name"));
+			typesWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("string"));
+			typesWriter.writeAttribute(QStringLiteral("default"),QStringLiteral(""));
+		typesWriter.writeEndElement();
+
+		typesWriter.writeStartElement(QStringLiteral("property"));
+			typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("x"));
+			typesWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("int"));
+			typesWriter.writeAttribute(QStringLiteral("default"),QStringLiteral("0"));
+		typesWriter.writeEndElement();
+
+		typesWriter.writeStartElement(QStringLiteral("property"));
+			typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("y"));
+			typesWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("int"));
+			typesWriter.writeAttribute(QStringLiteral("default"),QStringLiteral("0"));
+		typesWriter.writeEndElement();
+
+
+		typesWriter.writeStartElement(QStringLiteral("property"));
+			typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("htiled"));
+			typesWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("bool"));
+			typesWriter.writeAttribute(QStringLiteral("default"),QStringLiteral("true"));
+		typesWriter.writeEndElement();
+
+		typesWriter.writeStartElement(QStringLiteral("property"));
+			typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("vtiled"));
+			typesWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("bool"));
+			typesWriter.writeAttribute(QStringLiteral("default"),QStringLiteral("true"));
+		typesWriter.writeEndElement();
+
+
+		typesWriter.writeStartElement(QStringLiteral("property"));
+			typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("hspeed"));
+			typesWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("float"));
+			typesWriter.writeAttribute(QStringLiteral("default"),QStringLiteral("0"));
+		typesWriter.writeEndElement();
+
+		typesWriter.writeStartElement(QStringLiteral("property"));
+			typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("vspeed"));
+			typesWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("float"));
+			typesWriter.writeAttribute(QStringLiteral("default"),QStringLiteral("0"));
+		typesWriter.writeEndElement();
+
+	typesWriter.writeEndElement();//ROOM BACKGROUND
+
+
 
     typesWriter.writeEndElement();
     typesWriter.writeEndDocument();

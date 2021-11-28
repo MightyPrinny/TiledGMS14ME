@@ -32,6 +32,7 @@
 #include "objectgroup.h"
 #include <QDebug>
 #include <QDir>
+#include <QBuffer>
 #include <QFileInfo>
 #include <QDirIterator>
 #include "layer.h"
@@ -46,12 +47,15 @@
 #include <QTextCodec>
 #include <QTextDocument>
 #include "rapidxml.hpp"
+#include "rapidxml_print.hpp"
+#include "rapidxml_utils.hpp"
 #include <fstream>
 #include <QFileDialog>
 #include <string.h>
 #include <unordered_map>
 #include <qmath.h>
 #include <stdlib.h>
+#include <QStringBuilder>
 
 #include "roomimporterdialog.h"
 
@@ -155,22 +159,17 @@ static QString getEscaped(const QString &s, bool escapeWhitespace)
 
 static bool checkIfViewsDefined(const Map *map)
 {
-    LayerIterator iterator(map);
-    while (const Layer *layer = iterator.next()) {
+	bool enableViews = true;
+	if(map->hasProperty("enableViews"))
+	{
+		auto enableViewsVar = map->property("enableViews");
+		if(enableViewsVar.canConvert(QVariant::Bool))
+		{
+			enableViews = enableViewsVar.toBool();
+		}
+	}
 
-        if (layer->layerType() != Layer::ObjectGroupType)
-            continue;
-
-        const ObjectGroup *objectLayer = static_cast<const ObjectGroup*>(layer);
-
-        for (const MapObject *object : objectLayer->objects()) {
-            const QString type = object->effectiveType();
-            if (type == "view")
-                return true;
-        }
-    }
-
-    return false;
+	return enableViews;
 }
 
 
@@ -359,6 +358,7 @@ Tiled::Map *GmxPlugin::read(const QString &fileName, QSettings *appSettings)
     {
         return nullptr;
     }
+	qDebug()<<"Importing gmx room";
     xml_document<> doc;
     xml_node<> * root_node;
 
@@ -370,6 +370,17 @@ Tiled::Map *GmxPlugin::read(const QString &fileName, QSettings *appSettings)
     root_node = doc.first_node("room");
     xml_node<> *tile = root_node->first_node("tiles")->first_node("tile");
     xml_node<> *instance = root_node->first_node("instances")->first_node("instance");
+
+	int roomSpeed = 60;
+	{
+		xml_node<> *roomSpeedNode = root_node->first_node("speed");
+		if(roomSpeedNode)
+		{
+			roomSpeed = QString(roomSpeedNode->value()).toInt();
+		}
+	}
+
+	bool enableViews = QString(root_node->first_node("enableViews")->value()) == "-1" ? true : false;
     int tileWidth = settings.tileWidth;
     int tileHeight = settings.tileHeigth;
     int mapWidth = QString(root_node->first_node("width")->value()).toInt()/tileWidth;
@@ -381,6 +392,9 @@ Tiled::Map *GmxPlugin::read(const QString &fileName, QSettings *appSettings)
     newMap->setProperty("code",QVariant(root_node->first_node("code")->value()));
     newMap->setQuadWidth(settings.quadWidth);
     newMap->setQuadHeight(settings.quadHeigth);
+	newMap->setProperty("enableViews", enableViews);
+	newMap->setProperty("speed", roomSpeed);
+
     if(useBgColor)
     {
         int r = bgColor % 256;
@@ -388,9 +402,110 @@ Tiled::Map *GmxPlugin::read(const QString &fileName, QSettings *appSettings)
         int b = (bgColor / 65536) % 256;
         newMap->setBackgroundColor(QColor(r,g,b));
     }
-    //Import tiles
+
+
+	//VIEW/BG IMPORT
+	{
+		qDebug()<<"Importing backgrounds";
+		xml_node<> *background = root_node->first_node("backgrounds")->first_node("background");
+		xml_node<> *view= root_node->first_node("views")->first_node("view");
+		auto gmBgLayer = new Tiled::ObjectGroup(QStringLiteral("_gmRoomBgDefs"),0,0);
+		auto gmViewLayer= new Tiled::ObjectGroup(QStringLiteral("_gmsRoomViewDefs"),0,0);
+		int bgCount = 0;
+		int viewCount = 0;
+
+		while(background)
+		{
+			bool visible = QString(background->first_attribute("visible")->value()) == "-1" ? true : false;
+			bool foreground = QString(background->first_attribute("foreground")->value()) == "-1" ? true : false;
+			bool htiled = QString(background->first_attribute("htiled")->value()) == "-1" ? true : false;
+			bool vtiled = QString(background->first_attribute("vtiled")->value()) == "-1" ? true : false;
+
+			int x = QString(background->first_attribute("x")->value()).toInt();
+			int y = QString(background->first_attribute("y")->value()).toInt();
+			qreal hspeed = QString(background->first_attribute("hspeed")->value()).toFloat();
+			qreal vspeed = QString(background->first_attribute("vspeed")->value()).toFloat();
+
+			QString name = QString(background->first_attribute("name")->value());
+
+			auto obj = new MapObject(QStringLiteral("BG_").append(QString::number(bgCount)), QStringLiteral("t_gmRoomBackground"),QPointF(16*bgCount,0), QSizeF(16,16));
+
+			obj->setProperty(QStringLiteral("visible"), visible);
+			obj->setProperty(QStringLiteral("foreground"), foreground);
+			obj->setProperty(QStringLiteral("htiled"), htiled);
+			obj->setProperty(QStringLiteral("vtiled"), vtiled);
+			obj->setProperty(QStringLiteral("x"), x);
+			obj->setProperty(QStringLiteral("y"), y);
+			obj->setProperty(QStringLiteral("name"), name);
+			obj->setProperty(QStringLiteral("hspeed"), hspeed);
+			obj->setProperty(QStringLiteral("vspeed"), vspeed);
+
+			gmBgLayer->addObject(obj);
+			++bgCount;
+
+			background = background->next_sibling();
+		}
+		qDebug()<<"Backgrounds imported";
+
+		qDebug()<<"Importing views";
+		while(view)
+		{
+			bool visible = QString(view->first_attribute("visible")->value()) == "-1" ? true : false;
+
+			int xview = QString(view->first_attribute("xview")->value()).toInt();
+			int yview = QString(view->first_attribute("yview")->value()).toInt();
+			int wview = QString(view->first_attribute("wview")->value()).toInt();
+			int hview = QString(view->first_attribute("hview")->value()).toInt();
+
+			int xport = QString(view->first_attribute("xport")->value()).toInt();
+			int yport = QString(view->first_attribute("yport")->value()).toInt();
+			int wport = QString(view->first_attribute("wport")->value()).toInt();
+			int hport = QString(view->first_attribute("hport")->value()).toInt();
+
+			int hborder= QString(view->first_attribute("hborder")->value()).toInt();
+			int vborder = QString(view->first_attribute("vborder")->value()).toInt();
+
+			qreal hspeed = QString(view->first_attribute("hspeed")->value()).toFloat();
+			qreal vspeed = QString(view->first_attribute("vspeed")->value()).toFloat();
+
+			auto obj = new MapObject(QStringLiteral("VIEW_").append(QString::number(viewCount)), QStringLiteral("t_gmRoomView"),QPointF(16*viewCount,16), QSizeF(16,16));
+
+			obj->setProperty(QStringLiteral("visible"), visible);
+			obj->setProperty(QStringLiteral("xview"), xview);
+			obj->setProperty(QStringLiteral("yview"), yview);
+			obj->setProperty(QStringLiteral("wview"), wview);
+			obj->setProperty(QStringLiteral("hview"), hview);
+
+			obj->setProperty(QStringLiteral("xport"), xport);
+			obj->setProperty(QStringLiteral("yport"), yport);
+			obj->setProperty(QStringLiteral("wport"), wport);
+			obj->setProperty(QStringLiteral("hport"), hport);
+
+			obj->setProperty(QStringLiteral("vborder"), vborder);
+			obj->setProperty(QStringLiteral("hborder"), hborder);
+
+			obj->setProperty(QStringLiteral("hspeed"), hspeed);
+			obj->setProperty(QStringLiteral("vspeed"), vspeed);
+
+			gmViewLayer->addObject(obj);
+			++viewCount;
+
+			view = view->next_sibling();
+			qDebug()<<"added view";
+
+		}
+		qDebug()<<"Views Imported";
+
+		newMap->addLayer(gmBgLayer);
+		newMap->addLayer(gmViewLayer);
+	}
+	//VIEW/BG IMPORT END
+
+
     QVector<TileLayer*> *mapLayers = new QVector<TileLayer*>();
     QVector<SharedTileset> *tilesets = new QVector<SharedTileset>();
+
+	//Import tiles
     QDir imageDir = QDir(settings.imagesPath);
     while(tile)
     {
@@ -474,48 +589,11 @@ Tiled::Map *GmxPlugin::read(const QString &fileName, QSettings *appSettings)
 
     if(instance)
     {
-        objects = new Tiled::ObjectGroup(QString("objects"),0,0);
+		objects = new Tiled::ObjectGroup(QString("objects"),0,0);
         objects->setProperty(QString("depth"),QVariant(0));
         unordered_map<string,string> *templateMap = new unordered_map<string,string> ();
         QDir dir = QDir(settings.templatePath.append(QString("/")));
         GmxPlugin::mapTemplates(templateMap,dir);
-        //Add view object if views are enabled
-        if(root_node->first_node("enableViews"))
-        {
-            if(QString(root_node->first_node("enableViews")->value()).toInt()!=0)
-            {
-                MapObject *obj = new MapObject("View","view",QPointF(0,0),QSizeF(16,16));
-                xml_node<> *viewNode = root_node->first_node("views")->first_node("view");
-                if(viewNode)
-                {
-                    int xview = QString(viewNode->first_attribute("xview")->value()).toInt();
-                    int yview = QString(viewNode->first_attribute("yview")->value()).toInt();
-                    int wview = QString(viewNode->first_attribute("wview")->value()).toInt();
-                    int hview = QString(viewNode->first_attribute("hview")->value()).toInt();
-                    int xport = QString(viewNode->first_attribute("xport")->value()).toInt();
-                    int yport = QString(viewNode->first_attribute("yport")->value()).toInt();
-                    int wport = QString(viewNode->first_attribute("wport")->value()).toInt();
-                    int hport = QString(viewNode->first_attribute("hport")->value()).toInt();
-                    int hborder = QString(viewNode->first_attribute("hborder")->value()).toInt();
-                    int vborder = QString(viewNode->first_attribute("vborder")->value()).toInt();
-                    obj->setProperty("xview",QVariant(xview));
-                    obj->setProperty("yview",QVariant(yview));
-                    obj->setProperty("wview",QVariant(wview));
-                    obj->setProperty("hview",QVariant(hview));
-                    obj->setProperty("xport",QVariant(xport));
-                    obj->setProperty("yport",QVariant(yport));
-                    obj->setProperty("wport",QVariant(wport));
-                    obj->setProperty("hport",QVariant(hport));
-                    obj->setProperty("hborder",QVariant(hborder));
-                    obj->setProperty("vborder",QVariant(vborder));
-                }
-                objects->addObject(obj);
-
-
-            }
-        }
-
-
 
         QDir *imagesPath = new QDir(settings.templatePath);
         imagesPath->cdUp();
@@ -571,9 +649,10 @@ Tiled::Map *GmxPlugin::read(const QString &fileName, QSettings *appSettings)
 
                 MapObject *obj = new MapObject(QString(""),objName,pos,QSizeF(templ->object()->width()*abs(scaleX),templ->object()->height()*abs(scaleY)));
 
-                obj->setProperties(templ->object()->properties());
+				obj->setObjectTemplate(templ);
+				//obj->setProperties(templ->object()->properties());
                 obj->setCell(templ->object()->cell());
-                obj->setProperty(QString("code"),code);
+				obj->setProperty(QString("code"),code);
 
                 if(scaleX<0)
                     obj->flip(FlipHorizontally,pos);
@@ -646,24 +725,123 @@ bool GmxPlugin::supportsFile(const QString &fileName) const
     return false;
 }
 
+static rapidxml::xml_node<>* appendNode(rapidxml::xml_document<> *doc, rapidxml::xml_node<>* prt, const char* name, int value)
+{
+	using namespace  rapidxml;
+	xml_node<> *node = doc->allocate_node(node_type::node_element, name, doc->allocate_string( QString::number(value).toStdString().c_str()));
+	prt->append_node(node);
+	return node;
+}
+
+static void writeBackground(QXmlStreamWriter *stream, bool visible = false, bool foreground = false, QString name = "", int x = 0 , int y = 0, bool htiled = true, bool vtiled = true, qreal hspeed = 0, qreal vspeed = 0, qreal stretch = 0)
+{
+	stream->writeStartElement("background");
+
+	stream->writeAttribute("visible", toString(visible));
+	stream->writeAttribute("foreground", toString(foreground));
+	stream->writeAttribute("name", name);
+	stream->writeAttribute("x", toString(x));
+	stream->writeAttribute("y", toString(y));
+	stream->writeAttribute("htiled", toString(htiled));
+	stream->writeAttribute("vtiled", toString(vtiled));
+	stream->writeAttribute("hspeed", toString(hspeed));
+	stream->writeAttribute("vspeed", toString(vspeed));
+	stream->writeAttribute("stretch", toString(stretch));
+
+	stream->writeEndElement();
+}
+
+static void writeBackground(QXmlStreamWriter *stream, const MapObject *object)
+{
+	bool visible = optionalProperty(object, "visible", false);
+	bool foreground = optionalProperty(object, "foreground", false);
+	QString name = optionalProperty(object, "name", QStringLiteral(""));
+	int x = optionalProperty(object, "x", 0);
+	int y = optionalProperty(object, "y", 0);
+	bool htiled = optionalProperty(object, "htiled", true);
+	bool vtiled= optionalProperty(object, "vtiled", true);
+
+	qreal hspeed = optionalProperty(object, "hspeed", -1.0);
+	qreal vspeed = optionalProperty(object, "vspeed", -1.0);
+	qreal stretch = optionalProperty(object, "stetch", 0.0);
+
+	writeBackground(stream, visible, foreground, name, x  , y, htiled, vtiled, hspeed,vspeed,stretch);
+}
+
+static void writeView(QXmlStreamWriter *stream, bool visible = false, int xview =0 , int yview = 0, int wview = 640, int hview = 480, int xport = 0, int yport = 0, int hport = 480, int wport = 640, int hborder = 32, int vborder = 32, qreal vspeed = -1, qreal hspeed = -1)
+{
+	stream->writeStartElement("view");
+
+	stream->writeAttribute("visible", toString(visible));
+	stream->writeAttribute("objName", QStringLiteral("<undefined>") );
+	stream->writeAttribute("xview", toString(xview));
+	stream->writeAttribute("yview", toString(yview));
+	stream->writeAttribute("wview", toString(wview));
+	stream->writeAttribute("hview", toString(hview));
+	stream->writeAttribute("xport", toString(xport));
+	stream->writeAttribute("yport", toString(yport));
+	stream->writeAttribute("wport", toString(wport));
+	stream->writeAttribute("hport", toString(hport));
+	stream->writeAttribute("hborder", toString(hborder));
+	stream->writeAttribute("vborder", toString(vborder));
+	stream->writeAttribute("hspeed", toString(hspeed));
+	stream->writeAttribute("vspeed", toString(vspeed));
+
+	stream->writeEndElement();
+}
+
+static void writeView(QXmlStreamWriter *stream, const MapObject *object)
+{
+	bool visible = optionalProperty(object, "visible", true);
+	int xview = optionalProperty(object, "xview", 0);
+	int yview = optionalProperty(object, "yview", 0);
+	int wview = optionalProperty(object, "wview", 640);
+	int hview = optionalProperty(object, "hview", 480);
+
+	int xport = optionalProperty(object, "xport", 0);
+	int yport = optionalProperty(object, "yport", 0);
+	int wport = optionalProperty(object, "wport", 640);
+	int hport = optionalProperty(object, "hport", 480);
+
+	int hborder = optionalProperty(object, "hborder", 32);
+	int vborder = optionalProperty(object, "vborder", 32);
+
+	qreal hspeed = optionalProperty(object, "hspeed", -1.0);
+	qreal vspeed = optionalProperty(object, "vspeed", -1.0);
+
+	writeView(stream, visible, xview, yview, wview, hview, xport, yport, hport, wport, hborder, vborder, vspeed, hspeed);
+}
+
 bool GmxPlugin::write(const Map *map, const QString &fileName)
 {
+	using namespace rapidxml;
     SaveFile file(fileName);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
         mError = tr("Could not open file for writing.");
         return false;
     }
 
-    QXmlStreamWriter stream(file.device());
+	int mapPixelWidth = map->tileWidth() * map->width();
+	int mapPixelHeight = map->tileHeight() * map->height();
 
-    stream.writeComment("This Document is generated by Tiled, if you edit it by hand then you do so at your own risk!");
+	//We use this to reorder things)
+	QBuffer instancesText;
+	QBuffer tilesText;
+	instancesText.open(QIODevice::WriteOnly | QIODevice::Text);
+	tilesText.open(QIODevice::WriteOnly | QIODevice::Text);
+	QTextStream instancesStream(&instancesText);
+	QTextStream tilesStream(&tilesText);
+
+	QXmlStreamWriter stream;
+
+	stream.setDevice(file.device());
+	stream.device()->write("<!--This Document is generated by GameMaker, if you edit it by hand then you do so at your own risk!-->");
+	//stream.writeComment("This Document is generated by Tiled, if you edit it by hand then you do so at your own risk!");
     stream.setAutoFormatting(true);
     stream.setAutoFormattingIndent(2);
     stream.writeStartElement("room");
 
 
-    int mapPixelWidth = map->tileWidth() * map->width();
-    int mapPixelHeight = map->tileHeight() * map->height();
 
 
     stream.writeTextElement("caption", QLatin1String(""));
@@ -672,7 +850,8 @@ bool GmxPlugin::write(const Map *map, const QString &fileName)
     stream.writeTextElement("vsnap", QString::number(map->tileHeight()));
     stream.writeTextElement("hsnap", QString::number(map->tileWidth()));
     stream.writeTextElement("isometric", QString::number(0));
-    writeProperty(stream, map, "speed", 60);
+
+	writeProperty(stream, map, "speed", optionalProperty(map, QStringLiteral("speed"), 60) );
     writeProperty(stream, map, "persistent", false);
     stream.writeTextElement("colour", colorToOLE((QColor&)map->backgroundColor()));
     stream.writeTextElement("showcolour",toString(optionalProperty(map,"showcolour",true)));
@@ -702,92 +881,172 @@ bool GmxPlugin::write(const Map *map, const QString &fileName)
    stream.writeTextElement("yoffset",toString(0));
    stream.writeEndElement();
 
-    //Megamix Engine
-    stream.writeStartElement("backgrounds");
-    stream.writeStartElement("background");
+	//quint64 instanceMark=0;
 
-    stream.writeAttribute("visible",QString("-1"));
-    stream.writeAttribute("foreground",QString("-1"));
-    QString bgquad;
-    if(map->quadWidth()==256 && map->quadHeight()==224)
-         bgquad = QString("bgQuadMM9_10");
-    else if(map->quadWidth()==256 && map->quadHeight()==240)
-        bgquad = QString("bgQuadMM1_6");
-    else if(map->quadWidth() == 400 && map->quadHeight()==224)
-        bgquad = QString("bgQuad400x224");
-    else if(map->quadWidth() == 400 && map->quadHeight()==240)
-        bgquad = QString("bgQuad400x240");
-    else if(map->quadWidth())
-        bgquad = QString("bgQuad").append(QString::number(map->quadWidth())).append(QString("x")).append(QString::number(map->quadHeight()));
-    stream.writeAttribute("name",bgquad);
-    stream.writeAttribute("x",QString("0"));
-    stream.writeAttribute("y",QString("0"));
-    stream.writeAttribute("htiled",QString("-1"));
-    stream.writeAttribute("vtiled",QString("-1"));
-    stream.writeAttribute("hspeed",QString("0"));
-    stream.writeAttribute("vspeed",QString("0"));
-    stream.writeAttribute("stretch",QString("0"));
+	LayerIterator iterator(map);
 
-    stream.writeEndElement();
-    stream.writeEndElement();
+	// Write out views
+	if (true) {
+		//Write backgrounds
+		stream.writeStartElement("backgrounds");
 
-    quint64 instanceMark=0;
+		int bgCount = 0;
 
-    // Write out views
-    // Last view in Object layer is the first view in the room
-    LayerIterator iterator(map);
-    if (enableViews) {
+		while (const Layer *layer = iterator.next()) {
+
+			if (layer->layerType() != Layer::ObjectGroupType)
+				continue;
+
+			if(layer->name() != QStringLiteral("_gmRoomBgDefs"))
+			{
+				continue;
+			}
+
+			const ObjectGroup *objectLayer = static_cast<const ObjectGroup*>(layer);
+
+
+			for(int bgId = 0; bgId < 8; ++bgId)
+			{
+				for (const MapObject *object : objectLayer->objects()) {
+					const QString type = object->effectiveType();
+					if (type != "t_gmRoomBackground")
+						continue;
+
+					auto varBgId = object->inheritedProperty("bgId");
+					if(varBgId.isValid())
+					{
+						int objBgId = varBgId.toInt();
+						if(objBgId != bgId)
+						{
+							continue;
+						}
+					}
+					else
+					{
+						continue;
+					}
+
+					writeBackground(&stream, object);
+					++bgCount;
+					if(bgCount >= 8)
+					{
+						break;
+					}
+				}
+			}
+
+			if(bgCount == 0)
+			{
+				//If the room doesn't have backgrounds defined because
+				//it was created before the update set it automatically
+				//asuming it's a level for megamix engine
+				QString bgquad;
+				if(map->quadWidth()==256 && map->quadHeight()==224)
+					 bgquad = QString("bgQuadMM9_10");
+				else if(map->quadWidth()==256 && map->quadHeight()==240)
+					bgquad = QString("bgQuadMM1_6");
+				else if(map->quadWidth() == 400 && map->quadHeight()==224)
+					bgquad = QString("bgQuad400x224");
+				else if(map->quadWidth() == 400 && map->quadHeight()==240)
+					bgquad = QString("bgQuad400x240");
+				else if(map->quadWidth())
+					bgquad = QString("bgQuad").append(QString::number(map->quadWidth())).append(QString("x")).append(QString::number(map->quadHeight()));
+
+				writeBackground(&stream, true, true, bgquad);
+				++bgCount;
+
+			}
+
+			//Fill the blanks
+			for(int bgId = bgCount; bgId < 8; ++bgId)
+			{
+				writeBackground(&stream);
+			}
+
+			break;
+		}
+		iterator.toFront();
+
+
+		stream.writeEndElement();//backgrounds
+
+		//Write views
         stream.writeStartElement("views");
         int viewCount = 0;
+
         while (const Layer *layer = iterator.next()) {
 
             if (layer->layerType() != Layer::ObjectGroupType)
                 continue;
 
+			if(layer->name() != QStringLiteral("_gmsRoomViewDefs"))
+			{
+				continue;
+			}
+
             const ObjectGroup *objectLayer = static_cast<const ObjectGroup*>(layer);
 
-            for (const MapObject *object : objectLayer->objects()) {
-                const QString type = object->effectiveType();
-                if (type != "view")
-                    continue;
 
-                // GM only has 8 views so drop anything more than that
-                if (viewCount > 7)
-                    break;
+			for(int viewId = 0; viewId < 8; ++viewId)
+			{
+				for (const MapObject *object : objectLayer->objects()) {
+					const QString type = object->effectiveType();
+					if (type != "t_gmRoomView")
+						continue;
 
-                viewCount++;
-                stream.writeStartElement("view");
+					//This is to add them in the right order
+					//there's just 8 so we can just loop a bunch
+					auto varViewId = object->inheritedProperty("viewId");
+					if(varViewId.isValid())
+					{
+						int objViewId = varViewId.toInt();
+						if(objViewId != viewId)
+						{
+							continue;
+						}
+					}
+					else
+					{
+						continue;
+					}
 
-                stream.writeAttribute("visible", toString(object->isVisible()));
-                stream.writeAttribute("objName", QString(optionalProperty(object, "objName", QString())));
-                QPointF pos = object->position();
-                // Note: GM only supports ints for positioning
-                // so views could be off if user doesn't align to whole number
-                stream.writeAttribute("xview", QString::number(qRound(pos.x())));
-                stream.writeAttribute("yview", QString::number(qRound(pos.y())));
-                stream.writeAttribute("wview", QString::number(qRound(optionalProperty(object, "wview", 256.0))));
-                stream.writeAttribute("hview", QString::number(qRound(optionalProperty(object, "hview", 224.0))));
-                // Round these incase user adds properties as floats and not ints
-                stream.writeAttribute("xport", QString::number(qRound(optionalProperty(object, "xport", 0.0))));
-                stream.writeAttribute("yport", QString::number(qRound(optionalProperty(object, "yport", 0.0))));
-                stream.writeAttribute("wport", QString::number(qRound(optionalProperty(object, "wport", 256.0))));
-                stream.writeAttribute("hport", QString::number(qRound(optionalProperty(object, "hport", 224.0))));
-                stream.writeAttribute("hborder", QString::number(qRound(optionalProperty(object, "hborder", 32.0))));
-                stream.writeAttribute("vborder", QString::number(qRound(optionalProperty(object, "vborder", 32.0))));
-                stream.writeAttribute("hspeed", QString::number(qRound(optionalProperty(object, "hspeed", -1.0))));
-                stream.writeAttribute("vspeed", QString::number(qRound(optionalProperty(object, "vspeed", -1.0))));
+					writeView(&stream, object);
+					viewCount++;
 
-                stream.writeEndElement();
-            }
+					// Only do 8 views
+					if (viewCount >= 8)
+						break;
+				}
+			}
+
+			//Write default view in case the level was created before
+			//the update
+			if(viewCount == 0)
+			{
+				writeView(&stream, true, 0, 0, 256, 224, 0, 0, 224, 256, 9999, 9999);
+				++viewCount;
+			}
+
+
+			//Fill the blanks
+			for(int viewId = viewCount; viewId < 8; ++viewId)
+			{
+				writeView(&stream);
+			}
+
+			break;
         }
 
-        stream.writeEndElement();
+		stream.writeEndElement();//views
+
+		iterator.toFront();
     }
 
 
 
     iterator.toFront();
 
+	stream.setDevice(tilesStream.device());
     stream.writeStartElement("tiles");
 
     uint tileId = 0u;
@@ -1087,6 +1346,7 @@ bool GmxPlugin::write(const Map *map, const QString &fileName)
         }
     }
     stream.writeEndElement();
+	stream.setDevice(instancesStream.device());
 
     iterator.toFront();
     stream.writeStartElement("instances");
@@ -1098,6 +1358,15 @@ bool GmxPlugin::write(const Map *map, const QString &fileName)
 
         if (layer->layerType() != Layer::ObjectGroupType)
             continue;
+		if(layer->name() == QStringLiteral("_gmsRoomViewDefs"))
+		{
+			continue;
+		}
+
+		if(layer->name() == QStringLiteral("_gmRoomBgDefs"))
+		{
+			continue;
+		}
 
         const ObjectGroup *objectLayer = static_cast<const ObjectGroup*>(layer);
 
@@ -1245,7 +1514,14 @@ bool GmxPlugin::write(const Map *map, const QString &fileName)
 
     }
 
-    stream.writeEndElement();
+	stream.writeEndElement(); //Instances
+	stream.setDevice(file.device());
+	tilesText.close();
+	stream.device()->write(tilesText.buffer());
+	instancesText.close();
+	stream.device()->write(instancesText.buffer());
+
+
 
     writeProperty(stream, map, "PhysicsWorld", false);
     writeProperty(stream, map, "PhysicsWorldTop", 0);
