@@ -50,7 +50,7 @@ void MMGenerateTemplatesDialog::on_buttonBox_clicked(QAbstractButton *button)
 {
 	if(ui->buttonBox->standardButton(button) == QDialogButtonBox::Ok)
 	{
-		importer->generateTemplates(ui->gmProjectLineEdit->text(), ui->outputDirLineEdit->text());
+		importer->generateTemplates(ui->gmProjectLineEdit->text(), ui->outputDirLineEdit->text(), ui->deleteOldFilesCheckBox->isChecked(), true);
 	}
 }
 

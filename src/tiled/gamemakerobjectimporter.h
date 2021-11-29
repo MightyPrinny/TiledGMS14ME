@@ -37,7 +37,7 @@ class GameMakerObjectImporter : public QThread
 public:
     GameMakerObjectImporter(QWidget *wd);
 	void showGenerateTemplatesDialog(QWidget* prt);
-	void generateTemplates(QString dir, QString outputDir);
+	void generateTemplates(QString dir, QString outputDir, bool deleteOld = true, bool updateTypesInEditor = true);
     void generateTemplatesInThread();
 protected:
     void run() override;

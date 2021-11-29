@@ -493,11 +493,12 @@ Tiled::Map *GmxPlugin::read(const QString &fileName, QSettings *appSettings)
 			++viewCount;
 
 			view = view->next_sibling();
-			qDebug()<<"added view";
 
 		}
 		qDebug()<<"Views Imported";
 
+		gmBgLayer->setVisible(false);
+		gmViewLayer->setVisible(false);
 		newMap->addLayer(gmBgLayer);
 		newMap->addLayer(gmViewLayer);
 	}

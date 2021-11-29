@@ -12,6 +12,10 @@
 #include <QDebug>
 #include <stack>
 #include <QCoreApplication>
+#include <preferences.h>
+#include <QMessageBox>
+
+using namespace Tiled;
 
 GameMakerObjectImporter::GameMakerObjectImporter(QWidget *wd)
 {
@@ -145,7 +149,7 @@ void GameMakerObjectImporter::showGenerateTemplatesDialog(QWidget* prt)
 	delete diag;
 }
 
-void GameMakerObjectImporter::generateTemplates(QString dir, QString outputDirPath)
+void GameMakerObjectImporter::generateTemplates(QString dir, QString outputDirPath, bool deleteOld, bool updateTypesInEditor)
 {
 	if(dir.isEmpty() || outputDirPath.isEmpty())
     {
@@ -170,6 +174,20 @@ void GameMakerObjectImporter::generateTemplates(QString dir, QString outputDirPa
     rootDir.cdUp();
 
 	QDir outputDir = QDir(outputDirPath);
+
+	if(deleteOld)
+	{
+		if(outputDir.exists(QStringLiteral("templates")))
+		{
+			QDir tmplDir(outputDir.filePath(QStringLiteral("templates")));
+			tmplDir.removeRecursively();
+		}
+		if(outputDir.exists(QStringLiteral("types.xml")))
+		{
+			QFile::remove(outputDir.filePath(QStringLiteral("types.xml")));
+		}
+	}
+
 	outputDir .mkdir(QStringLiteral("templates"));
 	valid &= outputDir .cd(QStringLiteral("templates"));
 	QDir templateDir = QDir(outputDir.path());
@@ -180,6 +198,9 @@ void GameMakerObjectImporter::generateTemplates(QString dir, QString outputDirPa
 		qDebug() << "Invalid directory";
 		return;
 	}
+
+
+
 	if(!outputDir.exists(QStringLiteral("gmDefaultImage.png")))
 	{
 		qDebug() << "No default image file at " << outputDir.filePath(QStringLiteral("gmDefaultImage.png"));
@@ -546,11 +567,11 @@ void GameMakerObjectImporter::generateTemplates(QString dir, QString outputDirPa
 				typesWriter.writeAttribute(QStringLiteral("default"),QString::number(imageHeigth));
 			typesWriter.writeEndElement();
 
-			templateWriter.writeStartElement(QStringLiteral("property"));
-				templateWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("depth"));
-				templateWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("int"));
-				templateWriter.writeAttribute(QStringLiteral("value"),QString::number(depth));
-			templateWriter.writeEndElement();
+			typesWriter.writeStartElement(QStringLiteral("property"));
+				typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("depth"));
+				typesWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("int"));
+				typesWriter.writeAttribute(QStringLiteral("value"),QString::number(depth));
+			typesWriter.writeEndElement();
 
 			typesWriter.writeStartElement(QStringLiteral("property"));
 				typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("code"));
@@ -769,11 +790,29 @@ void GameMakerObjectImporter::generateTemplates(QString dir, QString outputDirPa
     }
 
     typesWriter.writeEndElement();
-    typesWriter.writeEndDocument();
+	typesWriter.writeEndDocument();//Image collection
 
     imageCollection->close();
-
     delete imageCollection;
+
+	if(updateTypesInEditor)
+	{
+		ObjectTypes objectTypes;
+		ObjectTypesSerializer serializer;
+
+		if (!serializer.readObjectTypes(typesFile->fileName(), objectTypes)) {
+			QMessageBox::critical(prtWidget, tr("Error Reading Object Types"),
+								  serializer.errorString());
+		}
+		else
+		{
+			auto *prefs = Internal::Preferences::instance();
+			prefs->setObjectTypesFile(typesFile->fileName());
+			prefs->setObjectTypes(objectTypes);
+		}
+
+	}
+
     delete typesFile;
     delete imageList;
     delete objectFolderMap;
