@@ -49,11 +49,25 @@ MapObjectItem::MapObjectItem(MapObject *object, MapDocument *mapDocument,
 {
     setAcceptedMouseButtons(Qt::MouseButtons());
     syncWithMapObject();
+
 }
 
 void MapObjectItem::syncWithMapObject()
 {
     const QColor color = objectColor(mObject);
+	auto prop = mObject->inheritedProperty(QStringLiteral("depth"));
+	bool canUpdateZ = true;
+	if (prop.isValid())
+	{
+
+		if(prop.type() == QVariant::Int)
+		{
+			setZValue(-prop.toInt());
+
+			canUpdateZ = false;
+
+		}
+	}
 
     // Update the whole object when the name, polygon or color has changed
     if (mPolygon != mObject->polygon() || mColor != color) {
@@ -77,9 +91,15 @@ void MapObjectItem::syncWithMapObject()
     setPos(pixelPos);
     setRotation(mObject->rotation());
 
-    if (ObjectGroup *objectGroup = mObject->objectGroup()) {
-        if (objectGroup->drawOrder() == ObjectGroup::TopDownOrder)
-            setZValue(pixelPos.y());
+
+
+	if (ObjectGroup *objectGroup = mObject->objectGroup()) {
+
+		if(canUpdateZ)
+		{
+			if (objectGroup->drawOrder() == ObjectGroup::TopDownOrder)
+				setZValue(pixelPos.y());
+		}
 
         if (mIsHoveredIndicator) {
             auto totalOffset = objectGroup->totalOffset();

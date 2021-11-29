@@ -621,22 +621,15 @@ Tiled::Map *GmxPlugin::read(const QString &fileName, QSettings *appSettings)
             {
                 tempath = QString(it->second.c_str());
             }
-			else
-			{
-				if(objName == QStringLiteral("objSlopeR"))
-				{
-					qDebug() << "FUCK";
-				}
-			}
 
             QPointF pos = QPointF(x,y);
             ObjectTemplate *templ = TemplateManager::instance()->loadObjectTemplate(tempath);
 
-			if(templ!=nullptr&&templ->object()!=nullptr&&templ->object()->inheritedProperty(QString("originX")).isValid())
+			if(templ!=nullptr&&templ->object()!=nullptr&&templ->object()->inheritedProperty(QStringLiteral("originX")).isValid())
             {
-                QVariant aux = templ->object()->inheritedProperty(QString("originX"));
+				QVariant aux = templ->object()->inheritedProperty(QStringLiteral("originX"));
                 int originX = aux.toInt();
-                aux = templ->object()->inheritedProperty(QString("originY"));
+				aux = templ->object()->inheritedProperty(QStringLiteral("originY"));
                 int originY = aux.toInt();
 
                 double rotation = QString(instance->first_attribute("rotation")->value()).toDouble() *-1;
@@ -657,12 +650,13 @@ Tiled::Map *GmxPlugin::read(const QString &fileName, QSettings *appSettings)
                 transform.rotate(rotation);
                 pos += transform.map(origin);
 
-                MapObject *obj = new MapObject(QString(""),objName,pos,QSizeF(templ->object()->width()*abs(scaleX),templ->object()->height()*abs(scaleY)));
+				MapObject *obj = new MapObject(QStringLiteral(""),objName,pos,QSizeF(templ->object()->width()*abs(scaleX),templ->object()->height()*abs(scaleY)));
 
 				obj->setObjectTemplate(templ);
+
 				//obj->setProperties(templ->object()->properties());
                 obj->setCell(templ->object()->cell());
-				obj->setProperty(QString("code"),code);
+				obj->setProperty(QStringLiteral("code"),code);
 
                 if(scaleX<0)
                     obj->flip(FlipHorizontally,pos);
@@ -674,8 +668,6 @@ Tiled::Map *GmxPlugin::read(const QString &fileName, QSettings *appSettings)
 
 
                 objects->addObject(obj);
-
-
             }
             else
             {
@@ -693,9 +685,9 @@ Tiled::Map *GmxPlugin::read(const QString &fileName, QSettings *appSettings)
 				transform.rotate(rotation);
 				pos += transform.map(origin);
 
-				MapObject *obj = new MapObject(QString(""),objName,pos,QSizeF(8,8));
+				MapObject *obj = new MapObject(QStringLiteral(""),objName,pos,QSizeF(8,8));
 
-				obj->setProperty(QString("code"),code);
+				obj->setProperty(QStringLiteral("code"),code);
 
 				if(scaleX<0)
 					obj->flip(FlipHorizontally,pos);

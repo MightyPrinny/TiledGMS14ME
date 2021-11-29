@@ -321,8 +321,14 @@ void GameMakerObjectImporter::generateTemplates(QString dir, QString outputDirPa
         if(auxNode)
         {
             spriteName = QString(QLatin1String(auxNode->value()));
-
         }
+
+		int depth = 0;
+		auxNode = auxDoc.first_node("object")->first_node("depth");
+		if(auxNode)
+		{
+			depth = QString(QLatin1String(auxNode->value())).toInt();
+		}
         int originX=0;
         int originY=0;
         int imageWidth=1;
@@ -478,6 +484,12 @@ void GameMakerObjectImporter::generateTemplates(QString dir, QString outputDirPa
 					templateWriter.writeEndElement();
 
 					templateWriter.writeStartElement(QStringLiteral("property"));
+						templateWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("depth"));
+						templateWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("int"));
+						templateWriter.writeAttribute(QStringLiteral("value"),QString::number(depth));
+					templateWriter.writeEndElement();
+
+					templateWriter.writeStartElement(QStringLiteral("property"));
 						templateWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("code"));
 						templateWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("string"));
 						templateWriter.writeAttribute(QStringLiteral("value"),QStringLiteral(""));
@@ -533,6 +545,12 @@ void GameMakerObjectImporter::generateTemplates(QString dir, QString outputDirPa
 				typesWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("int"));
 				typesWriter.writeAttribute(QStringLiteral("default"),QString::number(imageHeigth));
 			typesWriter.writeEndElement();
+
+			templateWriter.writeStartElement(QStringLiteral("property"));
+				templateWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("depth"));
+				templateWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("int"));
+				templateWriter.writeAttribute(QStringLiteral("value"),QString::number(depth));
+			templateWriter.writeEndElement();
 
 			typesWriter.writeStartElement(QStringLiteral("property"));
 				typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("code"));

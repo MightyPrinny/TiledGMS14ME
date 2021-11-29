@@ -464,10 +464,25 @@ void MapItem::objectsInserted(ObjectGroup *objectGroup, int first, int last)
         MapObject *object = objectGroup->objectAt(i);
 
         MapObjectItem *item = new MapObjectItem(object, mapDocument(), ogItem);
-        if (drawOrder == ObjectGroup::TopDownOrder)
-            item->setZValue(item->y());
-        else
-            item->setZValue(i);
+		bool canUpdateZ = true;
+		auto prop = object->inheritedProperty(QStringLiteral("depth"));
+		if (prop.isValid())
+		{
+
+			if(prop.type() == QVariant::Int)
+			{
+				item->setZValue(-prop.toInt());
+				canUpdateZ = false;
+			}
+		}
+		if(canUpdateZ)
+		{
+			if (drawOrder == ObjectGroup::TopDownOrder)
+				item->setZValue(item->y());
+			else
+				item->setZValue(i);
+		}
+
 
         mObjectItems.insert(object, item);
     }
@@ -508,7 +523,7 @@ void MapItem::objectsIndexChanged(ObjectGroup *objectGroup,
 {
     if (objectGroup->drawOrder() != ObjectGroup::IndexOrder)
         return;
-
+	return;
     for (int i = first; i <= last; ++i) {
         MapObjectItem *item = mObjectItems.value(objectGroup->objectAt(i));
         Q_ASSERT(item);
@@ -579,10 +594,29 @@ LayerItem *MapItem::createLayerItem(Layer *layer)
         for (MapObject *object : og->objects()) {
             MapObjectItem *item = new MapObjectItem(object, mapDocument(),
                                                     ogItem);
-            if (drawOrder == ObjectGroup::TopDownOrder)
-                item->setZValue(item->y());
-            else
-                item->setZValue(objectIndex);
+
+			auto prop = object->inheritedProperty(QStringLiteral("depth"));
+			bool canUpdateZ = true;
+			if (prop.isValid())
+			{
+
+				if(prop.type() == QVariant::Int)
+				{
+					setZValue(-prop.toInt());
+
+					canUpdateZ = false;
+
+				}
+			}
+
+			if(canUpdateZ)
+			{
+				if (drawOrder == ObjectGroup::TopDownOrder)
+					item->setZValue(item->y());
+				else
+					item->setZValue(objectIndex);
+			}
+
 
             mObjectItems.insert(object, item);
             ++objectIndex;
