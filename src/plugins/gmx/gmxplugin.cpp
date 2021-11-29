@@ -439,6 +439,7 @@ Tiled::Map *GmxPlugin::read(const QString &fileName, QSettings *appSettings)
 			obj->setProperty(QStringLiteral("name"), name);
 			obj->setProperty(QStringLiteral("hspeed"), hspeed);
 			obj->setProperty(QStringLiteral("vspeed"), vspeed);
+			obj->setProperty(QStringLiteral("bgId"), bgCount);
 
 			gmBgLayer->addObject(obj);
 			++bgCount;
@@ -486,6 +487,7 @@ Tiled::Map *GmxPlugin::read(const QString &fileName, QSettings *appSettings)
 
 			obj->setProperty(QStringLiteral("hspeed"), hspeed);
 			obj->setProperty(QStringLiteral("vspeed"), vspeed);
+			obj->setProperty(QStringLiteral("viewId"), viewCount);
 
 			gmViewLayer->addObject(obj);
 			++viewCount;

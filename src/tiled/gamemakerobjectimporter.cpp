@@ -552,6 +552,12 @@ void GameMakerObjectImporter::generateTemplates(QString dir, QString outputDirPa
 		typesWriter.writeAttribute(QStringLiteral("color"),QStringLiteral("#9c48a4"));
 
 		typesWriter.writeStartElement(QStringLiteral("property"));
+			typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("viewId"));
+			typesWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("int"));
+			typesWriter.writeAttribute(QStringLiteral("default"),QStringLiteral("0"));
+		typesWriter.writeEndElement();
+
+		typesWriter.writeStartElement(QStringLiteral("property"));
 			typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("visible"));
 			typesWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("bool"));
 			typesWriter.writeAttribute(QStringLiteral("default"),QStringLiteral("false"));
@@ -643,6 +649,12 @@ void GameMakerObjectImporter::generateTemplates(QString dir, QString outputDirPa
 	typesWriter.writeStartElement(QStringLiteral("objecttype"));
 		typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("t_gmRoomBackground"));
 		typesWriter.writeAttribute(QStringLiteral("color"),QStringLiteral("#0048a4"));
+
+		typesWriter.writeStartElement(QStringLiteral("property"));
+			typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("bgId"));
+			typesWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("int"));
+			typesWriter.writeAttribute(QStringLiteral("default"),QStringLiteral("0"));
+		typesWriter.writeEndElement();
 
 		typesWriter.writeStartElement(QStringLiteral("property"));
 			typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("visible"));
