@@ -41,7 +41,7 @@
      <x>0</x>
      <y>0</y>
      <width>553</width>
-     <height>22</height>
+     <height>24</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -698,10 +698,16 @@
    <property name="toolTip">
     <string>Syncs object images to their template</string>
    </property>
+   <property name="visible">
+    <bool>false</bool>
+   </property>
   </action>
   <action name="actionObjTileAnimationToObjLayerAnimation">
    <property name="text">
     <string>objTileAnimation to objLayerAnimation</string>
+   </property>
+   <property name="visible">
+    <bool>false</bool>
    </property>
   </action>
  </widget>
