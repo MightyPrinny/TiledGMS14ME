@@ -57,9 +57,11 @@ public:
     int gridFine() const { return mGridFine; }
     qreal objectLineWidth() const { return mObjectLineWidth; }
     QSize snapGrid();
-    QString executablePath(){return mExecutablePath;}
+
+	QString executablePath(){return mExecutablePath;}
 	QString gmProjectPath(){return mGMProjectPath;}
 	QString genTemplatesOutDir(){return mGenTemplatesOutDir;}
+	bool autoFlipObjectSetter(){return mAutoFlipObjectSetter;}
 
     bool highlightCurrentLayer() const { return mHighlightCurrentLayer; }
     bool highlightHoveredObject() const;
@@ -172,6 +174,7 @@ public slots:
     void browseExecutablePath();
 	void browseGMProjectPath();
 	void browseGenTemplateOutDir();
+	void setAutoFlipObjectSetter(bool value);
     void setShowGrid(bool showGrid);
     void setShowQuads(bool showQuads);
     void setShowTileObjectOutlines(bool enabled);
@@ -198,6 +201,7 @@ signals:
     void showGridChanged(bool showGrid);
     void showQuadsChanged(bool showQuads);
     void showTileObjectOutlinesChanged(bool enabled);
+	void setAutoFlipObjectSetterChanged(bool enabled);
     void showTileAnimationsChanged(bool enabled);
     void snapToGridChanged(bool snapToGrid);
     void snapToFineGridChanged(bool snapToFineGrid);
@@ -255,6 +259,7 @@ private:
     bool mSnapToGrid;
     bool mSnapToFineGrid;
     bool mSnapToPixels;
+	bool mAutoFlipObjectSetter;
     int mSnapGridHeigth;
     int mSnapGridWidth;
     QColor mGridColor;

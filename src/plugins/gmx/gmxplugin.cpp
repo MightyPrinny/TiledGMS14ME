@@ -341,6 +341,7 @@ Tiled::Map *GmxPlugin::read(const QString &fileName, QSettings *appSettings)
         QString("../Objects/templates")
     };
     bool accepted = false;
+	bool flipSetter = false;
     RoomImporterDialog *sDialog = new RoomImporterDialog(nullptr,&accepted,&settings);
 	{
 	//	Preferences* prefs = Preferences::instance();
@@ -349,6 +350,11 @@ Tiled::Map *GmxPlugin::read(const QString &fileName, QSettings *appSettings)
 	if(appSettings != nullptr)
 	{
 		sDialog->setDefaultPaths(appSettings);
+		auto flipSetterVar = appSettings->value("Interface/AutoFlipObjectSetter");
+		if(flipSetterVar.isValid() && flipSetterVar.toString() == QStringLiteral("true") )
+		{
+			flipSetter = true;
+		}
 	}
 
     sDialog->exec();
@@ -667,8 +673,17 @@ Tiled::Map *GmxPlugin::read(const QString &fileName, QSettings *appSettings)
 
                 obj->setSize(QSizeF(templ->object()->width()*abs(scaleX),templ->object()->height()*abs(scaleY)));
 
+				if(flipSetter)
+				{
+					if(scaleY > 0 && objName == QStringLiteral("objObjectSetter"))
+					{
+						obj->flip(FlipDirection::FlipVertically, QPointF(0,0));
+					}
+				}
 
                 objects->addObject(obj);
+
+
             }
             else
             {

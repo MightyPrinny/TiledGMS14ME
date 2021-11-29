@@ -78,6 +78,7 @@ Preferences::Preferences()
     mExecutablePath = stringValue("ExecutablePath");
 	mGMProjectPath = stringValue("GMProjectPath");
 	mGenTemplatesOutDir = stringValue("GenTemplatesOutDir");
+	mAutoFlipObjectSetter = boolValue("AutoFlipObjectSetter", false);
 
     mShowGrid = boolValue("ShowGrid", true);
     mShowQuads = boolValue("ShowQuads", true);
@@ -335,19 +336,26 @@ void Preferences::browseGMProjectPath()
 													 | QFileDialog::DontUseCustomDirectoryIcons);
 
 	emit gmProjectPathChanged(mGMProjectPath);
-	mSettings->setValue(QLatin1String("Interface/GMProjectPath"), mGMProjectPath);
+	mSettings->setValue(QStringLiteral("Interface/GMProjectPath"), mGMProjectPath);
 	return;
 }
 
 void Preferences::browseGenTemplateOutDir()
 {
-	mGenTemplatesOutDir = QFileDialog::getExistingDirectory(nullptr, QLatin1String("Choose the output directory for the templates folder"),
+	mGenTemplatesOutDir = QFileDialog::getExistingDirectory(nullptr, QStringLiteral("Choose the output directory for the templates folder"),
 													 QLatin1String(""),
 													 QFileDialog::ShowDirsOnly
 													 | QFileDialog::DontUseCustomDirectoryIcons);
 	emit genTemplatesOutDirChanged(mGenTemplatesOutDir);
-	mSettings->setValue(QLatin1String("Interface/GenTemplatesOutDir"), mGenTemplatesOutDir);
+	mSettings->setValue(QStringLiteral("Interface/GenTemplatesOutDir"), mGenTemplatesOutDir);
 	return;
+}
+
+void Preferences::setAutoFlipObjectSetter(bool value)
+{
+	mAutoFlipObjectSetter = value;
+	mSettings->setValue(QStringLiteral("Interface/AutoFlipObjectSetter"), value);
+	emit setAutoFlipObjectSetterChanged(value);
 }
 
 void Preferences::setSnapToFineGrid(bool snapToFineGrid)
@@ -356,7 +364,7 @@ void Preferences::setSnapToFineGrid(bool snapToFineGrid)
         return;
 
     mSnapToFineGrid = snapToFineGrid;
-    mSettings->setValue(QLatin1String("Interface/SnapToFineGrid"), mSnapToFineGrid);
+	mSettings->setValue(QStringLiteral("Interface/SnapToFineGrid"), mSnapToFineGrid);
     emit snapToFineGridChanged(mSnapToFineGrid);
 }
 
@@ -366,7 +374,7 @@ void Preferences::setSnapToPixels(bool snapToPixels)
         return;
 
     mSnapToPixels = snapToPixels;
-    mSettings->setValue(QLatin1String("Interface/SnapToPixels"), mSnapToPixels);
+	mSettings->setValue(QStringLiteral("Interface/SnapToPixels"), mSnapToPixels);
     emit snapToPixelsChanged(mSnapToPixels);
 }
 
