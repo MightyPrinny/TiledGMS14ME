@@ -174,7 +174,7 @@ void GameMakerObjectImporter::generateTemplates(QString dir, QString outputDirPa
     rootDir.cdUp();
 
 	QDir outputDir = QDir(outputDirPath);
-
+	bool needTilesetReload = false;
 	if(deleteOld)
 	{
 		if(outputDir.exists(QStringLiteral("templates")))
@@ -186,7 +186,13 @@ void GameMakerObjectImporter::generateTemplates(QString dir, QString outputDirPa
 		{
 			QFile::remove(outputDir.filePath(QStringLiteral("types.xml")));
 		}
+		if(outputDir.exists(QStringLiteral("images.tsx")))
+		{
+			if(!TilesetManager::instance()->findTileset(outputDir.filePath(QStringLiteral("images.tsx"))).isNull())
+				needTilesetReload = true;
+		}
 	}
+
 
 	outputDir .mkdir(QStringLiteral("templates"));
 	valid &= outputDir .cd(QStringLiteral("templates"));
@@ -817,6 +823,16 @@ void GameMakerObjectImporter::generateTemplates(QString dir, QString outputDirPa
     delete imageList;
     delete objectFolderMap;
     delete imageIDMap;
+
+	if(needTilesetReload)
+	{
+		auto tst = TilesetManager::instance()->findTileset(outputDir.filePath(QStringLiteral("images.tsx")));
+		if(tst.isNull())
+		{
+			TilesetManager::instance()->reloadImages(tst.get());
+		}
+	}
+
 	progress.close();
 
 }
