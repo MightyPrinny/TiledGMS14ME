@@ -358,8 +358,8 @@ Tiled::Map *GmxPlugin::read(const QString &fileName, QSettings *appSettings)
 	}
 
     sDialog->exec();
-
     delete sDialog;
+
     if(!accepted)
     {
         return nullptr;
@@ -572,8 +572,9 @@ Tiled::Map *GmxPlugin::read(const QString &fileName, QSettings *appSettings)
                 {
                     int tileID = ((xo/tileWidth)+ht) + ((yo/tileHeight)+vt)*tileset->columnCount();
 
-                    Tile *addtile  = new Tile(tileID, tileset.get());
-                    Cell ncell = Cell(addtile);
+
+					Cell ncell = Cell();
+					ncell.setTile(tileset.get(),tileID);
                     if(scaleX==-1)
                         ncell.setFlippedHorizontally(true);
                     if(scaleY==-1)
@@ -604,13 +605,13 @@ Tiled::Map *GmxPlugin::read(const QString &fileName, QSettings *appSettings)
         QDir dir = QDir(settings.templatePath.append(QString("/")));
         GmxPlugin::mapTemplates(templateMap,dir);
 
-        QDir *imagesPath = new QDir(settings.templatePath);
-        imagesPath->cdUp();
-        SharedTileset imagesTileset = TilesetManager::instance()->loadTileset(imagesPath->filePath(QString("images.tsx")));
+		QDir imagesPath = QDir(settings.templatePath);
+		imagesPath.cdUp();
+		SharedTileset imagesTileset = TilesetManager::instance()->loadTileset(imagesPath.filePath(QString("images.tsx")));
 
         if(imagesTileset.get()!=nullptr)
             newMap->addTileset(imagesTileset);
-        delete imagesPath;
+
         for(; instance ; instance=instance->next_sibling())
         {
             int x = QString(instance->first_attribute("x")->value()).toInt();
@@ -730,6 +731,7 @@ Tiled::Map *GmxPlugin::read(const QString &fileName, QSettings *appSettings)
         std::sort(mLayers->begin(),mLayers->end(),lesThanLayer);
     }
 
+	doc.clear();
     delete mapLayers;
     delete tilesets;
 
