@@ -340,34 +340,40 @@ void MapObject::flip(FlipDirection direction, const QPointF &origin)
  */
 MapObject *MapObject::clone() const
 {
-    MapObject *o = new MapObject(mName, mType, mPos, mSize);
+	MapObject *o = new MapObject(mName, mType, mPos, mSize);
     o->setId(mId);
-    o->setProperties(properties());
-    o->setTextData(mTextData);
-    o->setPolygon(mPolygon);
-    o->setShape(mShape);
-    o->setCell(mCell);
-    o->setRotation(mRotation);
-    o->setVisible(mVisible);
-    o->setChangedProperties(mChangedProperties);
-    o->setObjectTemplate(mObjectTemplate);
+	o->setObjectTemplate(mObjectTemplate);
+	o->setProperties(properties());
+	o->setChangedProperties(mChangedProperties);
+	o->setCell(mCell);
+	o->setSize(mSize);
+	o->setVisible(mVisible);
+	o->setTextData(mTextData);
+	o->setPolygon(mPolygon);
+	o->setShape(mShape);
+
+	o->setRotation(mRotation);
+
     return o;
 }
+
 
 void MapObject::copyPropertiesFrom(const MapObject *object)
 {
     setName(object->name());
-    setSize(object->size());
     setType(object->type());
-    setTextData(object->textData());
+	setObjectTemplate(object->objectTemplate());
+	setProperties(object->properties());
+	setChangedProperties(object->changedProperties());
+	setTextData(object->textData());
     setPolygon(object->polygon());
     setShape(object->shape());
     setCell(object->cell());
+	setSize(object->size());
     setRotation(object->rotation());
     setVisible(object->isVisible());
-    setProperties(object->properties());
-    setChangedProperties(object->changedProperties());
-    setObjectTemplate(object->objectTemplate());
+
+
 }
 
 const MapObject *MapObject::templateObject() const

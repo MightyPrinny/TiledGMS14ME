@@ -63,6 +63,10 @@ public:
 
     ~ObjectGroup() override;
 
+	void reserve(int x)
+	{
+		mObjects.reserve(x);
+	}
     /**
      * Returns a pointer to the list of objects in this object group.
      */

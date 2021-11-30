@@ -146,20 +146,22 @@ public:
 void MapWriterPrivate::writeMap(const Map *map, QIODevice *device,
                                 const QString &path)
 {
-    mMapDir = QDir(path);
-    mUseAbsolutePaths = path.isEmpty();
-    mLayerDataFormat = map->layerDataFormat();
+   mUseAbsolutePaths = path.isEmpty();
+   mLayerDataFormat = map->layerDataFormat();
 
-    AutoFormattingWriter writer(device);
-    writer.writeStartDocument();
+   QXmlStreamWriter writer(device);
+   writer.setAutoFormatting(false);
+   writer.setAutoFormattingIndent(1);
 
-    if (mDtdEnabled) {
-        writer.writeDTD(QLatin1String("<!DOCTYPE map SYSTEM \""
-                                      "http://mapeditor.org/dtd/1.0/"
-                                      "map.dtd\">"));
-    }
+   writer.writeStartDocument();
 
-    writeMap(writer, *map);
+   if (mDtdEnabled) {
+	   writer.writeDTD(QLatin1String("<!DOCTYPE map SYSTEM \""
+									 "http://mapeditor.org/dtd/1.0/"
+									 "map.dtd\">"));
+   }
+
+   writeMap(writer, *map);
     writer.writeEndDocument();
 }
 
@@ -542,7 +544,7 @@ void MapWriterPrivate::writeLayers(QXmlStreamWriter &w, const QList<Layer*> &lay
             writeTileLayer(w, *static_cast<const TileLayer*>(layer));
             break;
         case Layer::ObjectGroupType:
-            writeObjectGroup(w, *static_cast<const ObjectGroup*>(layer));
+			writeObjectGroup(w, *static_cast<const ObjectGroup*>(layer));
             break;
         case Layer::ImageLayerType:
             writeImageLayer(w, *static_cast<const ImageLayer*>(layer));
@@ -712,7 +714,7 @@ void MapWriterPrivate::writeObjectGroup(QXmlStreamWriter &w,
 
 static bool shouldWrite(bool holdsInfo, bool isTemplateInstance, bool changed)
 {
-    return isTemplateInstance ? changed : holdsInfo;
+	return isTemplateInstance ? true: holdsInfo;
 }
 
 void MapWriterPrivate::writeObject(QXmlStreamWriter &w,

@@ -242,7 +242,6 @@ public:
     void markAsTemplateBase();
 
 
-
 private:
     void flipRectObject(const QTransform &flipTransform);
     void flipPolygonObject(const QTransform &flipTransform);
