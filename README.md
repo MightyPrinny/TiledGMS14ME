@@ -12,9 +12,16 @@ Quick start
 -Click ok and wait a bit, for some reason this takes quite a bit longer on Windows than on GNU/Linux, but it's still quite fast compared
 to how long GMS1.4 takes to laod and save a project.
 
+-Open a room and modify the tile and quad size or click OK.
+
+-Now you can edit the room and insert objects using the TemplateDock, which is usually on the left side.
+
+-When moving objects with grid snapping turned on you can hold the control key to snap using half of the grid size.
 
 
 Remarks
+
+-The program might need some more testing so make backups.
 
 -it's recomended that you duplicate a game maker room to make a new room.
 
@@ -22,8 +29,15 @@ Remarks
 
 -Backgrounds and Views are stored as objects in their own object layers, you can modify their properties, but backgrounds won't be displayed in tiled.
 
+-Layers have a depth property which is used for their depth in Game Maker
 
-Changes
+-Layers are always tile aligned in tiled, so I decided to deal with tiles that aren't aligned to the grid by placing them in their own layer with an offset, which is why you might see multiple layers with the same depth when you import a room.
+
+-Tiles in Tiled are all the same size, when you import a room with a tile stored as a region of a tileset it will be imported as individual tiles.
+
+
+
+Features
 
 -Option to generate object templates from a game maker project.
 
