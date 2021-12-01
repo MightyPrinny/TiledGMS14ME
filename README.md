@@ -1,30 +1,46 @@
 This is a modified version of Tiled 1.1.5 made to edit Game Maker Studio 1.4 rooms, with some aditional features for MegamixEngine.
 
+
 Quick start
 
 -Go to preferences and set the path to your game maker project and a new folder where the templates will be generated
 
--Go to the "MegamixEngine" menu and click on "Generate templates
+-Go to the "MegamixEngine" menu and click on "Generate templates"
 
 -The dialog will open with the paths you set in preferences already set.
 
 -Click ok and wait a bit, for some reason this takes quite a bit longer on Windows than on GNU/Linux, but it's still quite fast compared
-to how long GMS1.4 takes to laod and save a project.
+to how long GMS1.4 takes to load and save a project.
+
+-Open a room, an import dialog will popup, here you can adjust the tile and quad size then click OK
+
+-Now you can edit the room and insert objects using the TemplateDock, which is usually on the left side.
+
+-When moving objects with grid snapping turned on you can hold the control key to snap using half of the grid size.
 
 
 Remarks
+
+-The program might need some more testing so make backups.
 
 -it's recomended that you duplicate a game maker room to make a new room.
 
 -You have to regenerate your templates when your project changes.
 
+-Backgrounds and Views are stored as objects in their own object layers, you can modify their properties, but backgrounds won't be displayed in tiled.
+
+-Layers have a depth property which is used for their depth in Game Maker
+
+-Layers are always tile aligned in tiled, so I decided to deal with tiles that aren't aligned to the grid by placing them in their own layer with an offset, which is why you might see multiple layers with the same depth when you import a room.
+
+-Tiles in Tiled are all the same size, when you import a room with a tile stored as a region of a tileset it will be imported as individual tiles.
+
+-Rooms are imported assuming that all tiles use tilesets with the same tile size.
 
 
 
+Features
 
-
-
-Changes
 -Option to generate object templates from a game maker project.
 
 -Objects using templates will use their sprite origin for snapping and will be sorted by their 
