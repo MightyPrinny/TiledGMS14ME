@@ -35,7 +35,7 @@ Remarks
 
 -Tiles in Tiled are all the same size, when you import a room with a tile stored as a region of a tileset it will be imported as individual tiles.
 
--Rooms are imported assuming that all tiles tilesets with the same tile size.
+-Rooms are imported assuming that all tiles use tilesets with the same tile size.
 
 
 
