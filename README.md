@@ -20,6 +20,8 @@ Remarks
 
 -You have to regenerate your templates when your project changes.
 
+-Backgrounds and Views are stored as objects in their own object layers, you can modify their properties, but backgrounds won't be displayed in tiled.
+
 
 Changes
 
