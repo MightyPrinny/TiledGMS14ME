@@ -240,8 +240,8 @@ Alignment MapObject::alignment() const
         if (Map *map = mObjectGroup->map())
             if (map->orientation() == Map::Isometric)
                 return Bottom;
-    }
-    return BottomLeft;
+	}
+	return BottomLeft;
 }
 
 QVariant MapObject::mapObjectProperty(Property property) const

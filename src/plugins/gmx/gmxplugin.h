@@ -37,7 +37,7 @@ class GMXSHARED_EXPORT GmxPlugin : public Tiled::MapFormat
 
 public:
     GmxPlugin();
-    void writeAttribute(QString &qualifiedName, QString &value, QIODevice* d, QTextCodec* codec);
+	void writeAttribute(const QString &qualifiedName, QString &value, QIODevice* d, QTextCodec* codec);
     static void mapTemplates(std::unordered_map<std::string,std::string> *map, QDir &root );
 	Tiled::Map *read(const QString &fileName, QSettings *) override;
 	bool supportsFile(const QString &fileName) const override;

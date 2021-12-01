@@ -112,8 +112,13 @@ void ObjectGroup::moveObjects(int from, int to, int count)
 QRectF ObjectGroup::objectsBoundingRect() const
 {
     QRectF boundingRect;
+
     for (const MapObject *object : mObjects)
-        boundingRect = boundingRect.united(object->bounds());
+	{
+		auto r = object->bounds();
+		r.translate(-alignmentOffset(r, object->alignment()));
+		boundingRect = boundingRect.united(r);
+	}
     return boundingRect;
 }
 

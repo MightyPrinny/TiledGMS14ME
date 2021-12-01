@@ -221,8 +221,8 @@ void ClipboardManager::pasteObjectGroup(const ObjectGroup *objectGroup,
         // Determine where to insert the objects
 
 		MapRenderer *renderer = mapDocument->renderer();
-		QPointF center = objectGroup->objectsBoundingRect().center();
-
+		auto rect = objectGroup->objectsBoundingRect();
+		QPointF center = rect.center();
 
         // Take the mouse position if the mouse is on the view, otherwise
         // take the center of the view.
@@ -234,8 +234,8 @@ void ClipboardManager::pasteObjectGroup(const ObjectGroup *objectGroup,
 
         const QPointF scenePos = view->mapToScene(viewPos);
 
-        insertPos = renderer->screenToPixelCoords(scenePos) - center;
-        SnapHelper(renderer).snap(insertPos);
+		insertPos = renderer->screenToPixelCoords(scenePos) - center;
+		//SnapHelper(renderer).snap(insertPos);
     }
 
     QVector<AddMapObjects::Entry> objectsToAdd;

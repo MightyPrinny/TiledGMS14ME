@@ -1,4 +1,4 @@
-/*
+﻿/*
  * GMX Tiled Plugin
  * Copyright 2016, Jones Blunt <mrjonesblunt@gmail.com>
  *
@@ -105,7 +105,7 @@ static QString colorToOLE(QColor &c)
 {
     return toString(c.red() + (c.green() * 256) + (c.blue() * 256 * 256));
 }
-static void wrt(char *s, QIODevice *device,QTextCodec* codec)
+static void wrt(const char *s, QIODevice *device,QTextCodec* codec)
 {
     if (device)
             device->write(s, qint64(strlen(s)));
@@ -113,7 +113,7 @@ static void wrt(char *s, QIODevice *device,QTextCodec* codec)
         qWarning("QXmlStreamWriter: No device");
 }
 
-static void wrt(QString &s,QIODevice *device,QTextCodec* codec)
+static void wrt(const QString &s,QIODevice *device,QTextCodec* codec)
 {
     QTextEncoder* encoder = codec->makeEncoder();
     const char *c =s.toStdString().c_str();
@@ -311,7 +311,7 @@ static bool lesThanLayer(Layer *lay1, Layer *lay2)
     return depth1>depth2;
 }
 
-void GmxPlugin::writeAttribute(QString &qualifiedName, QString &value, QIODevice* d, QTextCodec* codec)
+void GmxPlugin::writeAttribute(const QString &qualifiedName, QString &value, QIODevice* d, QTextCodec* codec)
 {
     wrt(" ",d,codec);
     wrt(qualifiedName,d,codec);
@@ -1483,10 +1483,11 @@ bool GmxPlugin::write(const Map *map, const QString &fileName)
                 stream.writeAttribute("name", name);
             }
             //Custom add atribute
-            QString cc = QString("code");
             QString cc2 = optionalProperty(object, "code", QString());
-            writeAttribute(cc,cc2,(QIODevice*)stream.device(),(QTextCodec*)stream.codec());
-            //stream.writeAttribute("code", optionalProperty(object, "code", QString()));
+
+			writeAttribute(QStringLiteral("code"),cc2,(QIODevice*)stream.device(),(QTextCodec*)stream.codec());
+			//stream.writeAttribute(QStringLiteral("code"), cc2);
+			//stream.writeAttribute("code", optionalProperty(object, "code", QString()));
             stream.writeAttribute("scaleX", QString::number(scaleX));
             stream.writeAttribute("scaleY", QString::number(scaleY));
             stream.writeAttribute("rotation", QString::number(-object->rotation()));
