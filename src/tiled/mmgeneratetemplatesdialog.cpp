@@ -22,6 +22,7 @@ MMGenerateTemplatesDialog::MMGenerateTemplatesDialog(QWidget *parent) :
 
 	ui->gmProjectLineEdit->setText(prefs->gmProjectPath());
 	ui->outputDirLineEdit->setText(prefs->genTemplatesOutDir());
+	succeeded = false;
 }
 
 MMGenerateTemplatesDialog::~MMGenerateTemplatesDialog()
@@ -50,7 +51,7 @@ void MMGenerateTemplatesDialog::on_buttonBox_clicked(QAbstractButton *button)
 {
 	if(ui->buttonBox->standardButton(button) == QDialogButtonBox::Ok)
 	{
-		importer->generateTemplates(ui->gmProjectLineEdit->text(), ui->outputDirLineEdit->text(), ui->deleteOldFilesCheckBox->isChecked(), true);
+		succeeded = importer->generateTemplates(ui->gmProjectLineEdit->text(), ui->outputDirLineEdit->text(), ui->deleteOldFilesCheckBox->isChecked(), true);
 	}
 }
 
@@ -64,7 +65,7 @@ void MMGenerateTemplatesDialog::on_outputDirBrowse_clicked()
 	{
 		ui->outputDirLineEdit->setText(path);
 	}
-	qDebug() << "thing2";
+
 }
 
 void MMGenerateTemplatesDialog::on_gmProjectBrowse_clicked()
@@ -78,5 +79,5 @@ void MMGenerateTemplatesDialog::on_gmProjectBrowse_clicked()
 		ui->gmProjectLineEdit->setText(path);
 	}
 
-	qDebug() << "thing";
+
 }

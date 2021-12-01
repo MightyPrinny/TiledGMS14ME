@@ -587,7 +587,7 @@ Zoomable *MapEditor::zoomable() const
 
 void MapEditor::showMessage(const QString &text, int timeout)
 {
-    mMainWindow->statusBar()->showMessage(text, timeout);
+	mMainWindow->statusBar()->showMessage(text, timeout);
 }
 
 void MapEditor::setSelectedTool(AbstractTool *tool)

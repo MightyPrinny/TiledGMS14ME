@@ -18,7 +18,7 @@ public:
 	~MMGenerateTemplatesDialog();
 
 	GameMakerObjectImporter *importer;
-
+	bool succeeded;
 public slots:
 
 

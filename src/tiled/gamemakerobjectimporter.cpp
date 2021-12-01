@@ -138,7 +138,7 @@ void GameMakerObjectImporter::mapObjectsToFolders(QString &projectFilePath, std:
 
 }
 
-void GameMakerObjectImporter::showGenerateTemplatesDialog(QWidget* prt)
+bool GameMakerObjectImporter::showGenerateTemplatesDialog(QWidget* prt)
 {
 	auto diag = new MMGenerateTemplatesDialog(prt);
 	diag->importer = this;
@@ -146,15 +146,17 @@ void GameMakerObjectImporter::showGenerateTemplatesDialog(QWidget* prt)
 	//diag->setWindowModality(Qt::WindowModal);
 	//diag->setModal(true);
 	diag->exec();
+	bool rv = diag->succeeded;
 	delete diag;
+	return rv;
 }
 
-void GameMakerObjectImporter::generateTemplates(QString dir, QString outputDirPath, bool deleteOld, bool updateTypesInEditor)
+bool GameMakerObjectImporter::generateTemplates(QString dir, QString outputDirPath, bool deleteOld, bool updateTypesInEditor)
 {
 	if(dir.isEmpty() || outputDirPath.isEmpty())
     {
 		printf("Generate Templates: a path was empty");
-        return;
+		return false;
     }
 
 
@@ -202,7 +204,7 @@ void GameMakerObjectImporter::generateTemplates(QString dir, QString outputDirPa
 	if(!valid)
 	{
 		qDebug() << "Invalid directory";
-		return;
+		return false;
 	}
 
 
@@ -292,7 +294,8 @@ void GameMakerObjectImporter::generateTemplates(QString dir, QString outputDirPa
         delete typesFile;
         delete imageList;
         delete imageCollection;
-        return;
+		delete imageIDMap;
+		return false;
     }
 
     QXmlStreamWriter typesWriter;
@@ -834,6 +837,7 @@ void GameMakerObjectImporter::generateTemplates(QString dir, QString outputDirPa
 	}
 
 	progress.close();
+	return true;
 
 }
 

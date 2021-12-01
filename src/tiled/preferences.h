@@ -138,7 +138,7 @@ public:
     void setStampsDirectory(const QString &stampsDirectory);
 
     QString templatesDirectory() const;
-    void setTemplatesDirectory(const QString &path);
+	void setTemplatesDirectory(const QString &path, bool forceEmitChanged = false);
 
     QString objectTypesFile() const;
     void setObjectTypesFile(const QString &filePath);
@@ -232,7 +232,7 @@ signals:
 
     void mapsDirectoryChanged();
     void stampsDirectoryChanged(const QString &stampsDirectory);
-    void templatesDirectoryChanged(const QString &templatesDirectory);
+	void templatesDirectoryChanged(const QString &templatesDirectory);
 
     void isPatronChanged();
 

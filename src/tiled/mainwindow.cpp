@@ -1032,7 +1032,13 @@ void MainWindow::run()
 void MainWindow::generateTemplates()
 {
     std::unique_ptr<GameMakerObjectImporter> helper(new GameMakerObjectImporter(this));
-	helper->showGenerateTemplatesDialog(this);
+	if(helper->showGenerateTemplatesDialog(this))
+	{
+		auto prefs = Preferences::instance();
+		QDir outDir = QDir(prefs->genTemplatesOutDir());
+		auto templatesPath = outDir.filePath(QStringLiteral("templates"));
+		Preferences::instance()->setTemplatesDirectory(templatesPath, true);
+	}
 }
 
 void MainWindow::fixObjectImages()

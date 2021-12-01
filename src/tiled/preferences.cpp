@@ -834,9 +834,9 @@ QString Preferences::templatesDirectory() const
     return mTemplatesDirectory;
 }
 
-void Preferences::setTemplatesDirectory(const QString &templatesDirectory)
+void Preferences::setTemplatesDirectory(const QString &templatesDirectory, bool force)
 {
-    if (mTemplatesDirectory == templatesDirectory)
+	if (!force && mTemplatesDirectory == templatesDirectory)
         return;
 
     mTemplatesDirectory = templatesDirectory;

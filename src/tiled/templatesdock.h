@@ -133,10 +133,9 @@ public slots:
     void updateNameFilter(const QString &text);
     void collapseTree();
     void expandTree();
+	void onTemplatesDirectoryChanged(const QString &rootPath);
 
 private:
-    void onTemplatesDirectoryChanged(const QString &rootPath);
-
     QSharedPointer<ObjectTemplateModel> mModel;
 };
 
