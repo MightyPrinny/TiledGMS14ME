@@ -1,15 +1,17 @@
 This is a modified version of Tiled 1.1.5 made to edit Game Maker Studio 1.4 rooms, with some aditional features for MegamixEngine.
 
+
 Quick start
 
 -Go to preferences and set the path to your game maker project and a new folder where the templates will be generated
 
--Go to the "MegamixEngine" menu and click on "Generate templates
+-Go to the "MegamixEngine" menu and click on "Generate templates"
 
 -The dialog will open with the paths you set in preferences already set.
 
 -Click ok and wait a bit, for some reason this takes quite a bit longer on Windows than on GNU/Linux, but it's still quite fast compared
 to how long GMS1.4 takes to laod and save a project.
+
 
 
 Remarks
