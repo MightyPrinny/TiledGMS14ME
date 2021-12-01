@@ -21,12 +21,8 @@ Remarks
 -You have to regenerate your templates when your project changes.
 
 
-
-
-
-
-
 Changes
+
 -Option to generate object templates from a game maker project.
 
 -Objects using templates will use their sprite origin for snapping and will be sorted by their 
