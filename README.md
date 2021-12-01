@@ -10,9 +10,9 @@ Quick start
 -The dialog will open with the paths you set in preferences already set.
 
 -Click ok and wait a bit, for some reason this takes quite a bit longer on Windows than on GNU/Linux, but it's still quite fast compared
-to how long GMS1.4 takes to laod and save a project.
+to how long GMS1.4 takes to load and save a project.
 
--Open a room and modify the tile and quad size or click OK.
+-Open a room, an import dialog will popup, here you can adjust the tile and quad size then click OK
 
 -Now you can edit the room and insert objects using the TemplateDock, which is usually on the left side.
 
