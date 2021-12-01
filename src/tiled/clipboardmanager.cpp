@@ -235,7 +235,7 @@ void ClipboardManager::pasteObjectGroup(const ObjectGroup *objectGroup,
         const QPointF scenePos = view->mapToScene(viewPos);
 
 		insertPos = renderer->screenToPixelCoords(scenePos) - center;
-		//SnapHelper(renderer).snap(insertPos);
+		SnapHelper(renderer).snap(insertPos);
     }
 
     QVector<AddMapObjects::Entry> objectsToAdd;
