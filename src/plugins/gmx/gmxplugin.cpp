@@ -105,6 +105,32 @@ static QString colorToOLE(QColor &c)
 {
     return toString(c.red() + (c.green() * 256) + (c.blue() * 256 * 256));
 }
+
+static QString colorToLongOle(QColor &c)
+{
+
+	return QString::number(c.red() + (c.green() * 256u) + (c.blue() * 256u * 256u) + (c.alpha()*256u*256u*256u));
+}
+
+// OLE = red + (green * 256) + (blue * 256 * 256)
+static QColor oleToColor(int oleColor)
+{
+	int r = oleColor % 256;
+	int g = (oleColor / 256) % 256;
+	int b = (oleColor / 65536) % 256;
+	return QColor(r,g,b);
+}
+
+//Long OLE = red + (green * 256) + (blue * 256 * 256) + (alpha * 256 * 256 * 256)
+static QColor longOleToColor(uint oleColor)
+{
+	int r = oleColor % 256u;
+	int g = (oleColor / 256u) % 256u;
+	int b = (oleColor / 65536u) % 256u;
+	int a = (oleColor / 16777216u) % 256u;
+	return QColor(r,g,b,a);
+}
+
 static void wrt(const char *s, QIODevice *device,QTextCodec* codec)
 {
     if (device)
@@ -216,7 +242,7 @@ static int indexOfAnim(int depth,int length, QVector<int> &speeds, QVector<Anima
 
 
 
-GmxPlugin::GmxPlugin()
+GmxPlugin::GmxPlugin(QObject *parent)
 {
 }
 
@@ -273,27 +299,35 @@ static TileLayer* tileLayerAtDepth(QVector<TileLayer*> &layers, int depth,int xo
     }
 }
 
-static SharedTileset tilesetWithName(QVector<SharedTileset> &tilesets, QString bgName, Map *map, QDir &imageDir)
-{
+static SharedTileset tilesetWithName(QVector<SharedTileset> &tilesets, const QString &bgName, Map *map, QDir &imageDir)
+{	
+	QString imgPath = imageDir.absoluteFilePath(bgName + (".png"));
 
-    for(SharedTileset tileset : tilesets)
+	/*SharedTileset tst = TilesetManager::instance()->findTileset(bgName);
+
+	if(!tst.isNull())
+	{
+		tilesets.append(tst);
+		return tst;
+	}*/
+	for(int i=0; i<tilesets.length(); ++i)
+	{
+		if(bgName == tilesets[i].get()->name())
+		{
+			return tilesets[i];
+		}
+	}
+
+	SharedTileset newTileset = Tileset::create(bgName,map->tileWidth(),map->tileHeight(),0,0);
+	if(newTileset->loadFromImage(imgPath))
     {
-        if(tileset.get()->name() == bgName)
-        {
-            return tileset;
-        }
-    }
-    SharedTileset newTileset = Tileset::create(bgName,map->tileWidth(),map->tileHeight(),0,0);
-    if(newTileset->loadFromImage(imageDir.absoluteFilePath(bgName.append(".png"))))
-    {
+
         tilesets.append(newTileset);
+		map->addTileset(newTileset);
+		return newTileset;
     }
-    else
-    {
-        return nullptr;
-    }
-    map->addTileset(newTileset);
-    return newTileset;
+
+	return SharedTileset();
 
 }
 
@@ -321,6 +355,10 @@ void GmxPlugin::writeAttribute(const QString &qualifiedName, QString &value, QIO
     wrt("\"",d,codec);
 }
 
+//TODO
+//Use background.gmx files to load tilesets instead of assuming their tile size
+//and put tiles of the same tileSize in the same layer
+//Use the layer's depth*-1 as their zindex instead of it's position within the layer
 Tiled::Map *GmxPlugin::read(const QString &fileName, QSettings *appSettings)
 {
     using namespace rapidxml;
@@ -391,7 +429,7 @@ Tiled::Map *GmxPlugin::read(const QString &fileName, QSettings *appSettings)
     int tileHeight = settings.tileHeigth;
     int mapWidth = QString(root_node->first_node("width")->value()).toInt()/tileWidth;
     int mapHeight = QString(root_node->first_node("height")->value()).toInt()/tileHeight;
-    int bgColor = QString(root_node->first_node("colour")->value()).toInt();
+	QColor bgColor = oleToColor(QString(root_node->first_node("colour")->value()).toInt());
     bool useBgColor = QString(root_node->first_node("showcolour")->value()).toInt() != 0;
 
     Map *newMap = new Map(Map::Orthogonal,mapWidth,mapHeight,tileWidth,tileHeight,false);
@@ -403,10 +441,7 @@ Tiled::Map *GmxPlugin::read(const QString &fileName, QSettings *appSettings)
 
     if(useBgColor)
     {
-        int r = bgColor % 256;
-        int g = (bgColor / 256) % 256;
-        int b = (bgColor / 65536) % 256;
-        newMap->setBackgroundColor(QColor(r,g,b));
+		newMap->setBackgroundColor(bgColor);
     }
 
 
@@ -682,6 +717,22 @@ Tiled::Map *GmxPlugin::read(const QString &fileName, QSettings *appSettings)
 					}
 				}
 
+				//Colors and locked
+				auto auxAttr = instance->first_attribute("locked");
+				bool locked = false;
+				if(auxAttr && auxAttr->value() == QStringLiteral("-1"))
+				{
+					locked = true;
+				}
+				auxAttr = instance->first_attribute("colour");
+				QColor color = QColor(255,255,255,255);
+				if(auxAttr)
+				{
+					color = longOleToColor(QString(auxAttr->value()).toUInt());
+				}
+				obj->setProperty("colour", color);
+				if(locked)
+					obj->setProperty("locked", locked);
                 objects->addObject(obj);
 
 
@@ -833,41 +884,15 @@ static void writeView(QXmlStreamWriter *stream, const MapObject *object)
 	writeView(stream, visible, xview, yview, wview, hview, xport, yport, hport, wport, hborder, vborder, vspeed, hspeed);
 }
 
-bool GmxPlugin::write(const Map *map, const QString &fileName)
+static void writeRoomProps(const Map* map, QXmlStreamWriter &stream)
 {
-	using namespace rapidxml;
-    SaveFile file(fileName);
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        mError = tr("Could not open file for writing.");
-        return false;
-    }
-
 	int mapPixelWidth = map->tileWidth() * map->width();
 	int mapPixelHeight = map->tileHeight() * map->height();
-
-	//We use this to reorder things)
-	QBuffer instancesText;
-	QBuffer tilesText;
-	instancesText.open(QIODevice::WriteOnly);
-	tilesText.open(QIODevice::WriteOnly);
-	QTextStream instancesStream(&instancesText);
-	QTextStream tilesStream(&tilesText);
-
-	QXmlStreamWriter stream;
-	auto codec = stream.codec();
-	stream.setDevice(file.device());
-
-	stream.device()->write("<!--This Document is generated by GameMaker, if you edit it by hand then you do so at your own risk!-->");
-	//stream.writeComment("This Document is generated by Tiled, if you edit it by hand then you do so at your own risk!");
-    stream.setAutoFormatting(true);
-    stream.setAutoFormattingIndent(2);
-	stream.writeStartElement("room");
-
-    stream.writeTextElement("caption", QLatin1String(""));
-    stream.writeTextElement("width", QString::number(mapPixelWidth));
-    stream.writeTextElement("height", QString::number(mapPixelHeight));
-    stream.writeTextElement("vsnap", QString::number(map->tileHeight()));
-    stream.writeTextElement("hsnap", QString::number(map->tileWidth()));
+	stream.writeTextElement("caption", QLatin1String(""));
+	stream.writeTextElement("width", QString::number(mapPixelWidth));
+	stream.writeTextElement("height", QString::number(mapPixelHeight));
+	stream.writeTextElement("vsnap", QString::number(map->tileHeight()));
+	stream.writeTextElement("hsnap", QString::number(map->tileWidth()));
 	stream.writeTextElement("isometric", QString::number(0));
 
 	writeOptionalProperty(stream, map, "speed", 60);
@@ -881,7 +906,7 @@ bool GmxPlugin::write(const Map *map, const QString &fileName)
 	writeOptionalProperty(stream, map, "clearViewBackground", toString(true));
 	writeOptionalProperty(stream, map, "clearDisplayBuffer", toString(true));
 
-   stream.writeStartElement("makerSettings");
+	stream.writeStartElement("makerSettings");
 	   stream.writeTextElement("isSet",toString(0));
 	   stream.writeTextElement("w", toString(0));
 	   stream.writeTextElement("h", toString(0));
@@ -896,12 +921,11 @@ bool GmxPlugin::write(const Map *map, const QString &fileName)
 	   stream.writeTextElement("page",toString(0));
 	   stream.writeTextElement("xoffset",toString(0));
 	   stream.writeTextElement("yoffset",toString(0));
-   stream.writeEndElement();
+	stream.writeEndElement();
+}
 
-	//quint64 instanceMark=0;
-
-	LayerIterator iterator(map);
-
+static void writeViews(QXmlStreamWriter &stream, const Map *map, std::vector<const Layer*> &layers)
+{
 	// Write out views
 	if (true) {
 		//Write backgrounds
@@ -909,8 +933,8 @@ bool GmxPlugin::write(const Map *map, const QString &fileName)
 
 		int bgCount = 0;
 
-		while (const Layer *layer = iterator.next()) {
-
+		for(uint i=0; i<layers.size(); ++i){
+			const Layer *layer = layers[i];
 			if (layer->layerType() != Layer::ObjectGroupType)
 				continue;
 
@@ -982,26 +1006,25 @@ bool GmxPlugin::write(const Map *map, const QString &fileName)
 
 			break;
 		}
-		iterator.toFront();
-
 
 		stream.writeEndElement();//backgrounds
 
 		//Write views
-        stream.writeStartElement("views");
-        int viewCount = 0;
+		stream.writeStartElement("views");
+		int viewCount = 0;
 
-        while (const Layer *layer = iterator.next()) {
+		for(uint i=0; i<layers.size(); ++i){
+			const Layer *layer = layers[i];
 
-            if (layer->layerType() != Layer::ObjectGroupType)
-                continue;
+			if (layer->layerType() != Layer::ObjectGroupType)
+				continue;
 
 			if(layer->name() != QStringLiteral("_gmsRoomViewDefs"))
 			{
 				continue;
 			}
 
-            const ObjectGroup *objectLayer = static_cast<const ObjectGroup*>(layer);
+			const ObjectGroup *objectLayer = static_cast<const ObjectGroup*>(layer);
 
 
 			for(int viewId = 0; viewId < 8; ++viewId)
@@ -1052,40 +1075,219 @@ bool GmxPlugin::write(const Map *map, const QString &fileName)
 			}
 
 			break;
-        }
+		}
 
 		stream.writeEndElement();//views
+	}
+}
 
-		iterator.toFront();
+bool GmxPlugin::write(const Map *map, const QString &fileName)
+{
+	using namespace rapidxml;
+    SaveFile file(fileName);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        mError = tr("Could not open file for writing.");
+        return false;
     }
 
+	int mapPixelWidth = map->tileWidth() * map->width();
+	int mapPixelHeight = map->tileHeight() * map->height();
+
+	//Prepare layers for iteration
+	std::vector<const Layer*> layers;
+	layers.reserve(32);
+	{
+		LayerIterator iterator(map);
+		while (const Layer *layer = iterator.next()) {
+			layers.push_back(layer);
+		}
+	}
+
+	bool combineTiles = optionalProperty(map, QStringLiteral("combineTilesOnExport"), true);
+
+	//Game maker outputs tiles ordered by their depth in descending order
+	//and instance id in ascending order
+	std::sort(layers.begin(), layers.end(),
+	[](const Layer *a, const Layer *b)
+	{
+		int depthA = 0;
+		int depthB = 0;
+		auto auxProp = a->property(QStringLiteral("depth"));
+		if(a->isTileLayer())
+		{
+			depthA	= 1000000;
+		}
+		if(auxProp.isValid() && auxProp.type() == QVariant::Int)
+		{
+			depthA = auxProp.toInt();
+		}
+
+		auxProp = b->property(QStringLiteral("depth"));
+		if(b->isTileLayer())
+		{
+			depthB	= 1000000;
+		}
+		if(auxProp.isValid() && auxProp.type() == QVariant::Int)
+		{
+			depthB = auxProp.toInt();
+		}
+
+		return depthA > depthB;
+	});
+
+	QXmlStreamWriter stream;
+	stream.setDevice(file.device());
+
+	stream.device()->write("<!--This Document is generated by GameMaker, if you edit it by hand then you do so at your own risk!-->");
+	
+    stream.setAutoFormatting(true);
+    stream.setAutoFormattingIndent(2);
+	stream.writeStartElement("room");
+
+	writeRoomProps(map, stream);
+	writeViews(stream, map, layers);
+
+	//Global instance id for everything written out
+	uint instId = 100000u;//In GM They start at 100000 for some reason
+
+	// Write out object instances
+	stream.writeStartElement("instances");
+	for(uint i=0; i<layers.size(); ++i){
+		const Layer *layer = layers[i];
+		if (layer->layerType() != Layer::ObjectGroupType)
+			continue;
+		if(layer->name() == QStringLiteral("_gmsRoomViewDefs"))
+		{
+			continue;
+		}
+
+		if(layer->name() == QStringLiteral("_gmRoomBgDefs"))
+		{
+			continue;
+		}
+
+		const ObjectGroup *objectLayer = static_cast<const ObjectGroup*>(layer);
+
+		for (const MapObject *object : objectLayer->objects()) {
+			const QString type = object->effectiveType();
+			if (type.isEmpty())
+				continue;
+			if (type == "view")
+				continue;
+
+			stream.writeStartElement("instance");
+
+			// The type is used to refer to the name of the object
+			stream.writeAttribute("objName", sanitizeName(type));
 
 
-    iterator.toFront();
+			QPointF pos = object->position();
+			qreal scaleX = 1;
+			qreal scaleY = 1;
+			qreal imageWidth = optionalProperty(object,"imageWidth",-1);
+			qreal imageHeigth = optionalProperty(object,"imageHeight",-1);
 
-	stream.setDevice(tilesStream.device());
-    stream.writeStartElement("tiles");
+			QPointF origin(optionalProperty(object, "originX", 0.0),
+						   optionalProperty(object, "originY", 0.0));
 
-    uint tileId = 0u;
+			if (!object->cell().isEmpty()) {
+				// For tile objects we can support scaling and flipping, though
+				// flipping in combination with rotation doesn't work in GameMaker.
 
-    // Write out tile instances
-    iterator.toBack();
+				using namespace std;
+				if (auto tile = object->cell().tile()) {
+					const QSize tileSize = tile->size();
+					if(imageWidth==-1||imageHeigth==-1)
+					{
+						imageHeigth=tileSize.height();
+						imageWidth=tileSize.width();
+					}
+					scaleX = abs(object->width() / imageWidth) ;
+					scaleY = abs(object->height() / imageHeigth);
 
-    QVector<AnimationLayer> *animationLayers = new QVector<AnimationLayer>();
-    int animStartLayer = 2000000;
 
-    {
-        QVariant auxP = map->property(QString("animationLayer"));
-        if(auxP.isValid())
-            animStartLayer= auxP.toInt();
-    }
-    int lastAnimLayerDepth = animStartLayer;
+					if (object->cell().flippedHorizontally()) {
+						scaleX *= -1;
+						//origin += QPointF((object->width()*scaleX) - 2 * origin.x(), 0);
+					}
+					if (object->cell().flippedVertically()) {
+						scaleY *= -1;
+						//origin += QPointF(0, (object->height()*scaleY) - 2 * origin.y());
+					}
+					if(scaleX>=0){
+						origin.setX(origin.x()*scaleX);
+					}
+					else{
+						origin.setX((imageWidth*abs(scaleX))-(origin.x()*abs(scaleX)));
+					}
+
+					if(scaleY>=0){
+						origin.setY(origin.y()*scaleY);
+					}
+					else{
+						origin.setY((imageHeigth*abs(scaleY))-(origin.y()*abs(scaleY)));
+					}
+				}
+				// Tile objects have bottom-left origin in Tiled, so the
+				// position needs to be translated for top-left origin in
+				// GameMaker, taking into account the rotation.
+				origin += QPointF(0, -object->height());
+
+
+			}
+			else if(imageWidth!=-1 && imageHeigth!=-1){
+				scaleX = object->width() / imageWidth;
+				scaleY = object->height() / imageHeigth;
+			}
+			// Allow overriding the scale using custom properties
+			scaleX = optionalProperty(object, "scaleX", scaleX);
+			scaleY = optionalProperty(object, "scaleY", scaleY);
+
+			// Adjust the position based on the origin
+			QTransform transform;
+			transform.rotate(object->rotation());
+			pos += transform.map(origin);
+
+			stream.writeAttribute("x", QString::number(qRound(pos.x())));
+			stream.writeAttribute("y", QString::number(qRound(pos.y())));
+
+			//Unique instance name
+			QString instIdStr = QString::number(++instId);
+			stream.writeAttribute("name", QStringLiteral("inst_")+instIdStr);
+
+			stream.writeAttribute("locked", toString(optionalProperty(object, QStringLiteral("locked"), false)));
+
+			//Custom add atribute
+			QString cc2 = optionalProperty(object, "code", QString());
+
+			writeAttribute(QStringLiteral("code"),cc2,(QIODevice*)stream.device(),(QTextCodec*)stream.codec());
+			//stream.writeAttribute(QStringLiteral("code"), cc2);
+			//stream.writeAttribute("code", optionalProperty(object, "code", QString()));
+			stream.writeAttribute("scaleX", QString::number(scaleX));
+			stream.writeAttribute("scaleY", QString::number(scaleY));
+			QColor color = optionalProperty(object, QStringLiteral("colour"), QColor(255,255,255,255));
+			QString colorStr = colorToLongOle(color);
+			stream.writeAttribute("colour", colorStr);
+			stream.writeAttribute("rotation", QString::number(-object->rotation()));
+
+			stream.writeEndElement();
+
+		}
+	}
+	stream.writeEndElement(); //Instances
+	
+	// Write out tile instances
+	stream.writeStartElement("tiles");
     int depthOff = 0;
     int layerCount = 0;
-    while (const Layer *layer = iterator.previous()) {
+	std::unordered_map <ulong, QPoint> processedTiles;
+	processedTiles.reserve((map->width()*map->height())/2);
+
+
+	for(uint i=0; i<layers.size(); ++i){
+		const Layer *layer = layers[i];
         --layerCount;
-        QString depth = QString::number(optionalProperty(layer, QLatin1String("depth"),
-                                                         depthOff + 1000000));
+		QString depth = QString::number(optionalProperty(layer, QLatin1String("depth"), 1000000 - depthOff));
 
         int xoff = layer->offset().x();
         int yoff = layer->offset().y();
@@ -1094,188 +1296,192 @@ bool GmxPlugin::write(const Map *map, const QString &fileName)
         case Layer::TileLayerType: {
             ++depthOff;
             auto tileLayer = static_cast<const TileLayer*>(layer);
-            for (int y = 0; y < tileLayer->height(); ++y) {
-                for (int x = 0; x < tileLayer->width(); ++x) {
+			int layerWidth = tileLayer->width();
+			int layerHeight = tileLayer->height();
+			for (int y = 0; y < layerHeight; ++y)
+			{
+				for (int x = 0; x < layerWidth; ++x)
+				{
+					//Skip processed tiles
+					if(combineTiles && processedTiles.count(x + y*layerWidth) > 0)
+					{
+						continue;
+					}
+
                     const Cell &cell = tileLayer->cellAt(x, y);
+
                     if (const Tile *tile = cell.tile()) {
                         const Tileset *tileset = tile->tileset();
 
-                        if(tile->isAnimated())
-                        {
-                            if(tileset->isCollection())
-                                continue;
-                            int animLayer = animStartLayer;
-                            int animLength = tile->frames().size();
+						stream.writeStartElement("tile");
 
-                            QVector<int> animSpeeds = QVector<int>();
-                            for(int j=0;j<animLength;++j)
-                            {
-                                animSpeeds.append(tile->frames().at(j).duration);
-                            }
-                            bool customDepth = false;
-                            {
-                                QVariant prp = tileset->inheritedProperty(QLatin1String("animationLayer"));
-                                if(prp.isValid()){
-                                    animLayer=prp.toInt();
-                                    customDepth=true;
-                                }
+						int pixelX = x * map->tileWidth();
+						int pixelY = y * map->tileHeight();
+						qreal scaleX = 1;
+						qreal scaleY = 1;
 
-                            }
-                            int layerID = -1;
+						if (cell.flippedHorizontally()) {
+							scaleX = -1;
+							pixelX += tile->width();
+						}
 
-                            if(!customDepth)
-                                layerID = indexOfAnim(animLength,animSpeeds,animationLayers);
-                            else
-                                layerID = indexOfAnim(animLayer,animLength,animSpeeds,animationLayers);
-                            if(layerID!=-1)
-                            {
-                                animLayer = animationLayers->at(layerID).depth;
-                            }
-                            else
-                            {
-                                if(!customDepth)
-                                {
-                                    AnimationLayer newLayer = {
-                                        (lastAnimLayerDepth),
-                                        animSpeeds,
-                                        animLength
-                                    };
-                                    lastAnimLayerDepth += animLength;
-                                    animLayer = newLayer.depth;
-                                    animationLayers->append(newLayer);
-                                }
-                                else
-                                {
-                                    AnimationLayer newLayer = {
-                                        (animLayer),
-                                        animSpeeds,
-                                        animLength
-                                    };
+						if (cell.flippedVertically()) {
+							scaleY = -1;
+							pixelY += tile->height();
+						}
 
-                                    animationLayers->append(newLayer);
-                                }
-                            }
+						QString bgName;
+						int xo = 0;
+						int yo = 0;
+						int tileWidth = tile->width();
+						int tileHeight = tile->height();
 
+						if (tileset->isCollection()) {
+							bgName = QFileInfo(tile->imageSource().path()).baseName();
+						} else {
+							bgName = tileset->name();
+							int tstColumns = tileset->columnCount();
+							int tstRows = tileset->rowCount();
+							int xInTilesetGrid = tile->id() % tileset->columnCount();
+							int yInTilesetGrid = (int)(tile->id() / tileset->columnCount());
 
-                            //Add tiles
-                            int pixelX = x * map->tileWidth();
-                            int pixelY = y * map->tileHeight();
-                            qreal scaleX = 1;
-                            qreal scaleY = 1;
+							xo = tileset->margin() + (tileset->tileSpacing() + tileset->tileWidth()) * xInTilesetGrid;
+							yo = tileset->margin() + (tileset->tileSpacing() + tileset->tileHeight()) * yInTilesetGrid;
 
-                            if (cell.flippedHorizontally()) {
-                                scaleX = -1;
-                                pixelX += tile->width();
-                            }
-                            if (cell.flippedVertically()) {
-                                scaleY = -1;
-                                pixelY += tile->height();
-                            }
+							//We only combine these for now to keep it simple
+							if(combineTiles && scaleX == 1 && scaleY == 1
+							&& (tileset->margin() == 0) && (tileset->tileSpacing()) == 0
+							&& (tile->width() == map->tileWidth()) && (tile->height() == map->tileHeight()))
+							{
+								int maxCheckXOff = tstColumns-1 - xInTilesetGrid;
+								int maxCheckYOff= tstRows-1 - yInTilesetGrid;
 
-                            QString bgName;
-                            int xo = 0;
-                            int yo = 0;
+								int combineXRight = 0;
+								int combineYBottom = 0;
+								int combineArea = 1;//in tiles
+								int currentArea = 1;
 
-                            if (tileset->isCollection()) {
-                                bgName = QFileInfo(tile->imageSource().path()).baseName();
+								int checkX = 1;
+								int checkY = 0;
+								bool rowJump = false;
+								if(checkX > maxCheckXOff || (checkX + x) >= layerWidth)
+								{
+									checkX = 0;
+									++checkY;
+									rowJump = true;
+								}
 
-                            }
-                            else
-                            {
-                                bgName = tileset->name();
-                            }
+								bool prevAccepted = true;
 
-                            for(int t =0; t<animLength;t++)
-                            {
-                                int xInTilesetGrid = tile->frames().at(t).tileId % tileset->columnCount();
-                                int yInTilesetGrid = int(tile->frames().at(t).tileId / tileset->columnCount());
+								for(;checkY <= maxCheckYOff && (checkY + y) < layerHeight; ++checkY)
+								{
 
-                                xo = tileset->margin() + (tileset->tileSpacing() + tileset->tileWidth()) * xInTilesetGrid;
-                                yo = tileset->margin() + (tileset->tileSpacing() + tileset->tileHeight()) * yInTilesetGrid;
+									for(; checkX <= maxCheckXOff && (checkX	+ x) < layerWidth; ++checkX)
+									{
+										const Cell &sCell = tileLayer->cellAt(x + checkX,y + checkY);
+										bool acceptedTile = false;
+										if(const Tile *sTile = sCell.tile())
+										{
+											const Tileset *sTileset = sTile->tileset();
 
-                                stream.writeStartElement("tile");
+											if(sTileset == tileset
+											&& (sTile->width() == map->tileWidth()) && (sTile->height() == map->tileHeight())
+											&& !sCell.flippedVertically() && !sCell.flippedHorizontally())
+											{
+												int sTileXInGrid = sTile->id() % tstColumns;
+												int sTileYInGrid = (int)(sTile->id() / tstColumns);
 
-                                stream.writeAttribute("bgName", bgName);
-                                stream.writeAttribute("x", QString::number(pixelX+xoff));
-                                stream.writeAttribute("y", QString::number(pixelY+yoff));
-                                stream.writeAttribute("w", QString::number(tile->width()));
-                                stream.writeAttribute("h", QString::number(tile->height()));
-
-                                stream.writeAttribute("xo", QString::number(xo));
-                                stream.writeAttribute("yo", QString::number(yo));
-
-                                stream.writeAttribute("id", QString::number(++tileId));
-                                stream.writeAttribute("depth", QString::number(animLayer + t));
-                                stream.writeAttribute("locked","0");
-                                stream.writeAttribute("colour",QString::number(4294967295));
-
-                                stream.writeAttribute("scaleX", QString::number(scaleX));
-                                stream.writeAttribute("scaleY", QString::number(scaleY));
-
-                                stream.writeEndElement();
-
-                            }
-
-                        }
-                        else
-                        {
-
-                            stream.writeStartElement("tile");
-
-                            int pixelX = x * map->tileWidth();
-                            int pixelY = y * map->tileHeight();
-                            qreal scaleX = 1;
-                            qreal scaleY = 1;
-
-                            if (cell.flippedHorizontally()) {
-                                scaleX = -1;
-                                pixelX += tile->width();
-                            }
-
-                            if (cell.flippedVertically()) {
-                                scaleY = -1;
-                                pixelY += tile->height();
-                            }
-
-                            QString bgName;
-                            int xo = 0;
-                            int yo = 0;
-
-                            if (tileset->isCollection()) {
-                                bgName = QFileInfo(tile->imageSource().path()).baseName();
-                            } else {
-                                bgName = tileset->name();
-
-                                int xInTilesetGrid = tile->id() % tileset->columnCount();
-                                int yInTilesetGrid = (int)(tile->id() / tileset->columnCount());
-
-                                xo = tileset->margin() + (tileset->tileSpacing() + tileset->tileWidth()) * xInTilesetGrid;
-                                yo = tileset->margin() + (tileset->tileSpacing() + tileset->tileHeight()) * yInTilesetGrid;
-                            }
-
-                            stream.writeAttribute("bgName", bgName);
-                            stream.writeAttribute("x", QString::number(pixelX+xoff));
-                            stream.writeAttribute("y", QString::number(pixelY+yoff));
-                            stream.writeAttribute("w", QString::number(tile->width()));
-                            stream.writeAttribute("h", QString::number(tile->height()));
-
-                            stream.writeAttribute("xo", QString::number(xo));
-                            stream.writeAttribute("yo", QString::number(yo));
-
-                            stream.writeAttribute("id", QString::number(++tileId));
-                            stream.writeAttribute("depth", depth);
-                            stream.writeAttribute("locked","0");
-                            stream.writeAttribute("colour",QString::number(4294967295));
+												if( (sTileXInGrid == (xInTilesetGrid + checkX))
+												&& (sTileYInGrid == (yInTilesetGrid + checkY)))
+												{
+													currentArea = ((checkX+1)*(checkY+1));
+													acceptedTile = true;
+													if(currentArea > combineArea)
+													{
+														combineArea = currentArea;
+														combineXRight = checkX;
+														combineYBottom = checkY;
 
 
-                            stream.writeAttribute("scaleX", QString::number(scaleX));
-                            stream.writeAttribute("scaleY", QString::number(scaleY));
+													}
+												}
+											}
+										}
+										rowJump = false;
+										if(!acceptedTile)
+										{
+											if(!prevAccepted)
+											{
+												maxCheckXOff = -1;
+												maxCheckYOff = -1;
+											}
+											prevAccepted = false;
+											break;
+										}
+										else
+										{
+											prevAccepted = true;
+										}
 
-                            stream.writeEndElement();
-                        }
+									}
+
+									checkX = 0;
+									rowJump = true;
+								}
+
+								if(combineArea > 1)
+								{
+									//Final step
+									checkX = 1;
+									for(checkY = 0 ;checkY <= combineYBottom && (checkY + y) < layerHeight; ++checkY)
+									{
+
+										for(; checkX <= combineXRight && (checkX + x) < layerWidth; ++checkX)
+										{
+											processedTiles.emplace(
+														(x+checkX) + (y+checkY)*layerWidth,
+														QPoint(checkX + x, checkY + y));
+										}
+
+										checkX	= 0;
+									}
+									tileWidth = (combineXRight + 1)*tile->width();
+									tileHeight = (combineYBottom+ 1)*tile->height();
+									if(!(tileWidth/tile->width())*(tileHeight/tile->height()) == combineArea )
+									{
+										qDebug() << "Fail";
+									}
+								}
+
+							}
+						}
+
+						stream.writeAttribute("bgName", bgName);
+						stream.writeAttribute("x", QString::number(pixelX+xoff));
+						stream.writeAttribute("y", QString::number(pixelY+yoff));
+						stream.writeAttribute("w", QString::number(tileWidth));
+						stream.writeAttribute("h", QString::number(tileHeight));
+
+						stream.writeAttribute("xo", QString::number(xo));
+						stream.writeAttribute("yo", QString::number(yo));
+
+						QString tileIdStr = QString::number(++instId);
+						stream.writeAttribute("id", tileIdStr);
+						stream.writeAttribute("name", QStringLiteral("inst_") + tileIdStr);
+						stream.writeAttribute("depth", depth);
+						stream.writeAttribute("locked","0");
+						stream.writeAttribute("colour", QStringLiteral("4294967295"));
+
+						stream.writeAttribute("scaleX", QString::number(scaleX));
+						stream.writeAttribute("scaleY", QString::number(scaleY));
+
+						stream.writeEndElement();
                     }
                 }
+
             }
+
+			processedTiles.clear();
             break;
         }
 
@@ -1341,11 +1547,15 @@ bool GmxPlugin::write(const Map *map, const QString &fileName)
                     stream.writeAttribute("xo", QString::number(xo));
                     stream.writeAttribute("yo", QString::number(yo));
 
-                    stream.writeAttribute("id", QString::number(++tileId));
-                    stream.writeAttribute("depth", depth);
+					QString tileIdStr = QString::number(++instId);
+					stream.writeAttribute("id", tileIdStr);
+					stream.writeAttribute("name", QStringLiteral("inst_") + tileIdStr);
+					stream.writeAttribute("depth", depth);
+					stream.writeAttribute("locked","0");
+					stream.writeAttribute("colour", QStringLiteral("4294967295"));
 
-                    stream.writeAttribute("scaleX", QString::number(scaleX));
-                    stream.writeAttribute("scaleY", QString::number(scaleY));
+					stream.writeAttribute("scaleX", QString::number(scaleX));
+					stream.writeAttribute("scaleY", QString::number(scaleY));
 
                     stream.writeEndElement();
                 }
@@ -1354,197 +1564,16 @@ bool GmxPlugin::write(const Map *map, const QString &fileName)
         }
 
         case Layer::ImageLayerType:
-            // todo: maybe export as backgrounds?
             break;
 
         case Layer::GroupLayerType:
-            // Recursion handled by LayerIterator
+			//Sub layers added through the layer iterator to our layers vector
             break;
         }
     }
     stream.writeEndElement();
-	stream.setDevice(instancesStream.device());
 
-    iterator.toFront();
-    stream.writeStartElement("instances");
-
-    QSet<QString> usedNames;
-
-    // Write out object instances
-    while (const Layer *layer = iterator.next()) {
-
-        if (layer->layerType() != Layer::ObjectGroupType)
-            continue;
-		if(layer->name() == QStringLiteral("_gmsRoomViewDefs"))
-		{
-			continue;
-		}
-
-		if(layer->name() == QStringLiteral("_gmRoomBgDefs"))
-		{
-			continue;
-		}
-
-        const ObjectGroup *objectLayer = static_cast<const ObjectGroup*>(layer);
-
-        for (const MapObject *object : objectLayer->objects()) {
-            const QString type = object->effectiveType();
-            if (type.isEmpty())
-                continue;
-            if (type == "view")
-                continue;
-
-            stream.writeStartElement("instance");
-
-            // The type is used to refer to the name of the object
-            stream.writeAttribute("objName", sanitizeName(type));
-
-
-            QPointF pos = object->position();
-            qreal scaleX = 1;
-            qreal scaleY = 1;
-            qreal imageWidth = optionalProperty(object,"imageWidth",-1);
-            qreal imageHeigth = optionalProperty(object,"imageHeight",-1);
-
-            QPointF origin(optionalProperty(object, "originX", 0.0),
-                           optionalProperty(object, "originY", 0.0));
-
-            if (!object->cell().isEmpty()) {
-                // For tile objects we can support scaling and flipping, though
-                // flipping in combination with rotation doesn't work in GameMaker.
-
-                using namespace std;
-                if (auto tile = object->cell().tile()) {
-                    const QSize tileSize = tile->size();
-                    if(imageWidth==-1||imageHeigth==-1)
-                    {
-                        imageHeigth=tileSize.height();
-                        imageWidth=tileSize.width();
-                    }
-                    scaleX = abs(object->width() / imageWidth) ;
-                    scaleY = abs(object->height() / imageHeigth);
-
-
-                    if (object->cell().flippedHorizontally()) {
-                        scaleX *= -1;
-                        //origin += QPointF((object->width()*scaleX) - 2 * origin.x(), 0);
-                    }
-                    if (object->cell().flippedVertically()) {
-                        scaleY *= -1;
-                        //origin += QPointF(0, (object->height()*scaleY) - 2 * origin.y());
-                    }
-                    if(scaleX>=0){
-                        origin.setX(origin.x()*scaleX);
-                    }
-                    else{
-                        origin.setX((imageWidth*abs(scaleX))-(origin.x()*abs(scaleX)));
-                    }
-
-                    if(scaleY>=0){
-                        origin.setY(origin.y()*scaleY);
-                    }
-                    else{
-                        origin.setY((imageHeigth*abs(scaleY))-(origin.y()*abs(scaleY)));
-                    }
-                }
-                // Tile objects have bottom-left origin in Tiled, so the
-                // position needs to be translated for top-left origin in
-                // GameMaker, taking into account the rotation.
-                origin += QPointF(0, -object->height());
-
-
-            }
-            else if(imageWidth!=-1 && imageHeigth!=-1){
-                scaleX = object->width() / imageWidth;
-                scaleY = object->height() / imageHeigth;
-            }
-            // Allow overriding the scale using custom properties
-            scaleX = optionalProperty(object, "scaleX", scaleX);
-            scaleY = optionalProperty(object, "scaleY", scaleY);
-
-            // Adjust the position based on the origin
-            QTransform transform;
-            transform.rotate(object->rotation());
-            pos += transform.map(origin);
-
-            stream.writeAttribute("x", QString::number(qRound(pos.x())));
-            stream.writeAttribute("y", QString::number(qRound(pos.y())));
-
-            // Include object ID in the name when necessary because duplicates are not allowed
-            if (object->name().isEmpty()) {
-                stream.writeAttribute("name", QString("inst_%1").arg(object->id()));
-            } else {
-                QString name = sanitizeName(object->name());
-
-                while (usedNames.contains(name))
-                    name += QString("_%1").arg(object->id());
-
-                usedNames.insert(name);
-                stream.writeAttribute("name", name);
-            }
-            //Custom add atribute
-            QString cc2 = optionalProperty(object, "code", QString());
-
-			writeAttribute(QStringLiteral("code"),cc2,(QIODevice*)stream.device(),(QTextCodec*)stream.codec());
-			//stream.writeAttribute(QStringLiteral("code"), cc2);
-			//stream.writeAttribute("code", optionalProperty(object, "code", QString()));
-            stream.writeAttribute("scaleX", QString::number(scaleX));
-            stream.writeAttribute("scaleY", QString::number(scaleY));
-            stream.writeAttribute("rotation", QString::number(-object->rotation()));
-
-            stream.writeEndElement();
-
-        }
-    }
-    //WriteTileAnimatorInstances
-    int alen = animationLayers->size();
-    for(int anim = 0; anim<alen; anim++)
-    {
-        int animLen = animationLayers->at(anim).animLength;
-
-        int animDepth = animationLayers->at(anim).depth;
-
-        stream.writeStartElement("instance");
-
-        stream.writeAttribute("objName", sanitizeName(QLatin1String("objLayerAnimation")));
-
-        stream.writeAttribute("x", QString::number(anim*16));
-        stream.writeAttribute("y", QString::number(0));
-
-        stream.writeAttribute("name", QString("LayerAnimationInst%1").arg(anim));
-        QString cCode(QString(QString("animLength = ").append(QString::number(animLen)).append(QString(";\nanimateOnTransition = true;\nanimationLayer = ")).append(QString::number(animDepth)).append(QString(";"))));
-
-        for(int frame = 0; frame <animLen ; frame++)
-        {
-            int animSpeed = int(round(animationLayers->at(anim).animSpeeds.at(frame) * 0.001*60));
-            cCode.append(QString("\nanimTime[").append(QString::number(frame)).append(QString("] = ").append(QString::number(animSpeed)).append(QString(";"))));
-        }
-
-        //Custom add atribute
-        QString cc = QString("code");
-        writeAttribute(cc,cCode,(QIODevice*)stream.device(),(QTextCodec*)stream.codec());
-        //stream.writeAttribute("code", optionalProperty(object, "code", QString()));
-        stream.writeAttribute("scaleX", QString::number(1));
-        stream.writeAttribute("scaleY", QString::number(1));
-        stream.writeAttribute("rotation", QString::number(0));
-
-        stream.writeEndElement();
-
-    }
-
-	stream.writeEndElement(); //Instances
-	stream.setDevice(file.device());
-
-	//Write instances before tiles like in gam maker
-	instancesText.close();
-	stream.device()->write(instancesText.buffer());
-	tilesText.close();
-	stream.device()->write(tilesText.buffer());
-
-
-
-
-
+	//Todo store these in read() and restore them as optional properties
 	writeOptionalProperty(stream, map, "PhysicsWorld", false);
 	writeOptionalProperty(stream, map, "PhysicsWorldTop", 0);
 	writeOptionalProperty(stream, map, "PhysicsWorldLeft", 0);
@@ -1555,8 +1584,6 @@ bool GmxPlugin::write(const Map *map, const QString &fileName)
 	writeOptionalProperty(stream, map, "PhysicsWorldPixToMeters", 0.1);
 
     stream.writeEndDocument();
-
-	delete animationLayers;
 
     if (!file.commit()) {
         mError = file.errorString();
@@ -1578,5 +1605,186 @@ QString GmxPlugin::nameFilter() const
 
 QString GmxPlugin::shortName() const
 {
-    return QLatin1String("gmx");
+	return QLatin1String("roomgmx");
+}
+
+//Tilesets
+
+GmxTilesetPlugin::GmxTilesetPlugin(QObject *parent)
+{
+
+}
+
+SharedTileset GmxTilesetPlugin::read(const QString &fileName)
+{
+	using namespace rapidxml;
+	using namespace std;
+	using namespace Tiled;
+
+	QFile file(fileName);
+	if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+		mError = tr("Could not open file for reading.");
+		return SharedTileset();
+	}
+	file.close();
+	QDir bgDir = QDir(fileName);
+	bgDir.cdUp();
+	qDebug() << "BgPath: "<<bgDir.path();
+
+	xml_document<> doc;
+
+	ifstream theFile(fileName.toStdString().c_str());
+	vector<char> buffer((istreambuf_iterator<char>(theFile)), istreambuf_iterator<char>());
+	buffer.push_back('\0');
+	doc.parse<0>(&buffer[0]);
+	//file.close();
+
+	xml_node<>* root_node = doc.first_node("background");
+	if(!root_node)
+	{
+		doc.clear();
+		mError = tr("Invalid background, no root node");
+		return SharedTileset();
+	}
+
+	xml_node<> *node = root_node->first_node("istileset");
+
+	int tileWidth = 16;
+	int tileHeight = 16;
+	int tileYOff = 0;
+	int tileXOff = 0;
+	//int tileHSep = 0;
+	//int tileVSep = 0;
+	bool isTileset = true;
+	if(node)
+		isTileset = node->value() == QStringLiteral("-1") ? true : false;
+	if(!isTileset)
+	{
+		mError = tr("Invalid background, not a tileset");
+		doc.clear();
+		return SharedTileset();
+	}
+
+	//node = root_node->first_node();
+
+	QString filePath;
+
+
+	while(node)
+	{
+		if(node->name() == QStringLiteral("tilewidth"))
+		{
+			tileWidth = QString(node->value()).toInt();
+		}
+		else if(node->name() == QStringLiteral("tileheight"))
+		{
+			tileHeight = QString(node->value()).toInt();
+		}
+		else if(node->name() == QStringLiteral("tilexoff"))
+		{
+			tileXOff = QString(node->value()).toInt();
+		}
+		else if(node->name() == QStringLiteral("tileyoff"))
+		{
+			tileYOff = QString(node->value()).toInt();
+		}
+		/*
+		else if(node->name() == QStringLiteral("tilehsep"))
+		{
+			tileHSep = QString(node->value()).toInt();
+		}
+		else if(node->name() == QStringLiteral("tilevsep"))
+		{
+			tileVSep = QString(node->value()).toInt();
+		}*/
+		else if(node->name() == QStringLiteral("data"))
+		{
+			filePath = node->value();
+			filePath.replace('\\','/');
+
+			filePath = bgDir.filePath(filePath);
+			qDebug()<<filePath;
+		}
+
+		node = node->next_sibling();
+	}
+
+	doc.clear();
+
+	QFile imgFile(filePath);
+	if(!imgFile.exists())
+	{
+		mError = tr("Invalid background, image file doesn't exist");
+		qDebug() << imgFile.fileName();
+		return SharedTileset();
+	}
+
+	SharedTileset sh = TilesetManager::instance()->findTileset(filePath);
+	if(!sh.isNull())
+	{
+		if(sh->tileWidth() != tileWidth || sh->tileHeight() != sh->tileHeight())
+		{
+			sh->setTileSize(QSize(tileWidth, tileHeight));
+		}
+		if(sh->tileOffset() != QPoint(tileXOff, tileYOff))
+		{
+			sh->setTileOffset(QPoint(tileXOff, tileYOff));
+		}
+		qDebug() << "reused tileset";
+		return sh;
+	}
+
+	QFileInfo imgFileInfo = QFileInfo(imgFile);
+
+	SharedTileset tileset = Tileset::create(imgFileInfo.completeBaseName(), tileWidth, tileHeight, 0, 0);
+	tileset->setTileOffset(QPoint(tileXOff, tileYOff));
+	if(tileset->loadFromImage(filePath))
+	{
+		tileset->setGridSize(QSize(tileWidth, tileHeight));
+		tileset->setFileName(fileName);
+		qDebug()<<"New tileset " << tileset->name() << ", tw:"<<tileWidth << ", th:"<<tileHeight;
+		return tileset;
+	}
+
+	return SharedTileset();
+
+
+
+}
+
+bool GmxTilesetPlugin::write(const Tileset &tst, const QString &filename)
+{
+
+}
+
+bool GmxTilesetPlugin::supportsFile(const QString &fileName) const
+{
+
+	return fileName.endsWith(QStringLiteral(".background.gmx"));
+}
+
+QString GmxTilesetPlugin::errorString() const
+{
+	return mError;
+}
+
+QString GmxTilesetPlugin::shortName() const
+{
+	return QStringLiteral("gmxbg");
+}
+
+FileFormat::Capabilities GmxTilesetPlugin::capabilities() const
+{
+	return Capability::Read;
+}
+
+QString GmxTilesetPlugin::nameFilter() const
+{
+	return QStringLiteral("GameMaker background files (*.background.gmx)");
+}
+
+void GmxTopPlugin::initialize()
+{
+	addObject(new GmxPlugin(this));
+	addObject(new GmxTilesetPlugin(this));
 }

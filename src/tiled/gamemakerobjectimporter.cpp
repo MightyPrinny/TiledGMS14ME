@@ -474,9 +474,9 @@ bool GameMakerObjectImporter::generateTemplates(QString dir, QString outputDirPa
 				templateWriter.writeAttribute(QStringLiteral("width"),QString::number(imageWidth));
 				templateWriter.writeAttribute(QStringLiteral("height"),QString::number(imageHeigth));
 
-
+				//We don't actually need these since they're specified by the object type
 				templateWriter.writeStartElement(QStringLiteral("properties"));
-
+					/*
 					templateWriter.writeStartElement(QStringLiteral("property"));
 						templateWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("offsetX"));
 						templateWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("int"));
@@ -520,10 +520,23 @@ bool GameMakerObjectImporter::generateTemplates(QString dir, QString outputDirPa
 					templateWriter.writeEndElement();
 
 					templateWriter.writeStartElement(QStringLiteral("property"));
+						templateWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("locked"));
+						templateWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("bool"));
+						templateWriter.writeAttribute(QStringLiteral("value"),QStringLiteral("false"));
+					templateWriter.writeEndElement();
+
+					templateWriter.writeStartElement(QStringLiteral("property"));
+						templateWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("colour"));
+						templateWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("color"));
+						templateWriter.writeAttribute(QStringLiteral("value"),QStringLiteral("#ffffffff"));
+					templateWriter.writeEndElement();
+
+					templateWriter.writeStartElement(QStringLiteral("property"));
 						templateWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("code"));
 						templateWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("string"));
 						templateWriter.writeAttribute(QStringLiteral("value"),QStringLiteral(""));
 					templateWriter.writeEndElement();
+				*/
 
 				templateWriter.writeEndElement();
 
@@ -574,6 +587,18 @@ bool GameMakerObjectImporter::generateTemplates(QString dir, QString outputDirPa
 				typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("imageHeight"));
 				typesWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("int"));
 				typesWriter.writeAttribute(QStringLiteral("default"),QString::number(imageHeigth));
+			typesWriter.writeEndElement();
+
+			typesWriter.writeStartElement(QStringLiteral("property"));
+				typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("locked"));
+				typesWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("bool"));
+				typesWriter.writeAttribute(QStringLiteral("value"),QStringLiteral("false"));
+			typesWriter.writeEndElement();
+
+			typesWriter.writeStartElement(QStringLiteral("property"));
+				typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("colour"));
+				typesWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("color"));
+				typesWriter.writeAttribute(QStringLiteral("value"),QStringLiteral("#ffffffff"));
 			typesWriter.writeEndElement();
 
 			typesWriter.writeStartElement(QStringLiteral("property"));

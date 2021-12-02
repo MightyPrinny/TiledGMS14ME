@@ -12,6 +12,7 @@
 #include <string>
 #include "rapidxml.hpp"
 #include <mmgeneratetemplatesdialog.h>
+#include <tilesetmanager.h>
 using namespace Tiled;
 
 

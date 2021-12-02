@@ -307,9 +307,18 @@ void MapItem::layerAdded(Layer *layer)
 {
     createLayerItem(layer);
 
+
     int z = 0;
     for (auto sibling : layer->siblings())
-        mLayerItems.value(sibling)->setZValue(z++);
+	{
+		auto auxProp = sibling->property(QStringLiteral("depth"));
+		int newZ = z++;
+		if(auxProp.canConvert(QVariant::Int))
+		{
+			newZ = -auxProp.toInt();
+		}
+		mLayerItems.value(sibling)->setZValue(newZ);
+	}
 }
 
 void MapItem::layerRemoved(Layer *layer)
@@ -527,8 +536,17 @@ void MapItem::objectsIndexChanged(ObjectGroup *objectGroup,
     for (int i = first; i <= last; ++i) {
         MapObjectItem *item = mObjectItems.value(objectGroup->objectAt(i));
         Q_ASSERT(item);
+		auto auxProp = item->mapObject()->property(QStringLiteral("depth"));
+		int newZ = i;
+		if(auxProp.isValid() && auxProp.canConvert(QVariant::Int))
+		{
+			item->setZValue(-auxProp.toInt());
+		}
+		else
+		{
+			item->setZValue(newZ);
+		}
 
-        item->setZValue(i);
     }
 }
 
@@ -568,7 +586,16 @@ void MapItem::createLayerItems(const QList<Layer *> &layers)
 
     for (Layer *layer : layers) {
         LayerItem *layerItem = createLayerItem(layer);
-        layerItem->setZValue(layerIndex);
+		auto auxProp = layer->property(QStringLiteral("depth"));
+		if(auxProp.isValid() && auxProp.canConvert(QVariant::Int))
+		{
+			layerItem->setZValue(-auxProp.toInt());
+		}
+		else
+		{
+			layerItem->setZValue(layerIndex);
+		}
+
         ++layerIndex;
     }
 }

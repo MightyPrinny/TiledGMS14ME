@@ -21,22 +21,34 @@
 #pragma once
 
 #include "mapformat.h"
+#include "tilesetformat.h"
 #include "gmx_global.h"
 #include <QIODevice>
 #include <QDir>
 #include <QImage>
 #include <unordered_map>
+#include <plugin.h>
 
 namespace Gmx {
+
+class GMXSHARED_EXPORT GmxTopPlugin : public Tiled::Plugin
+{
+	Q_OBJECT
+	Q_INTERFACES(Tiled::Plugin)
+	Q_PLUGIN_METADATA(IID "org.mapeditor.Plugin" FILE "plugin.json")
+
+public:
+	void initialize() override;
+};
+
 
 class GMXSHARED_EXPORT GmxPlugin : public Tiled::MapFormat
 {
     Q_OBJECT
-    Q_PLUGIN_METADATA(IID "org.mapeditor.MapFormat" FILE "plugin.json")
     Q_INTERFACES(Tiled::MapFormat)
 
 public:
-    GmxPlugin();
+	GmxPlugin(QObject *parent = nullptr);
 	void writeAttribute(const QString &qualifiedName, QString &value, QIODevice* d, QTextCodec* codec);
     static void mapTemplates(std::unordered_map<std::string,std::string> *map, QDir &root );
 	Tiled::Map *read(const QString &fileName, QSettings *) override;
@@ -50,6 +62,28 @@ protected:
 
 private:
     QString mError;
+};
+
+class GMXSHARED_EXPORT GmxTilesetPlugin : public Tiled::TilesetFormat
+{
+	Q_OBJECT
+	Q_INTERFACES(Tiled::TilesetFormat)
+
+public:
+	GmxTilesetPlugin(QObject *parent = nullptr);
+
+	Tiled::SharedTileset read(const QString &fileName) override;
+	bool write (const Tiled::Tileset &tst, const QString &filename) override;
+	bool supportsFile(const QString &fileName) const override;
+
+	Capabilities capabilities() const override;
+	QString nameFilter() const override;
+	QString errorString() const override;
+	QString shortName() const override;
+protected:
+	QString mError;
+
+
 };
 
 } // namespace Gmx
