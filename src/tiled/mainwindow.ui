@@ -182,7 +182,7 @@
    </widget>
    <widget class="QMenu" name="menuMegamix_Engine">
     <property name="title">
-     <string>Megamix Engine</string>
+     <string>GMS1.4/ME</string>
     </property>
     <addaction name="actionRun"/>
     <addaction name="actionAddMusic"/>

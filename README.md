@@ -5,7 +5,7 @@ Quick start
 
 -Go to preferences and set the path to your game maker project and a new folder where the templates will be generated
 
--Go to the "MegamixEngine" menu and click on "Generate templates"
+-Go to the "GMS1.4/ME" menu and click on "Generate templates"
 
 -The dialog will open with the paths you set in preferences already set.
 
