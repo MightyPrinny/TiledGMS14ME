@@ -299,32 +299,29 @@ static TileLayer* tileLayerAtDepth(QVector<TileLayer*> &layers, int depth,int xo
     }
 }
 
-static SharedTileset tilesetWithName(QVector<SharedTileset> &tilesets, const QString &bgName, Map *map, QDir &imageDir)
+static SharedTileset tilesetWithName(const QString &bgName, Map *map, QDir &imageDir)
 {	
 	QString imgPath = imageDir.absoluteFilePath(bgName + (".png"));
+	QDir imgDir = QDir(imageDir.path());
+	imgDir.cdUp();
 
-	/*SharedTileset tst = TilesetManager::instance()->findTileset(bgName);
+	SharedTileset tst = TilesetManager::instance()->findTilesetAbsolute(imgPath);
 
 	if(!tst.isNull())
 	{
-		tilesets.append(tst);
+		//tilesets.append(tst);
 		return tst;
-	}*/
-	QString fname = QString(bgName).append(QStringLiteral(".png"));
-	for(int i=0; i<tilesets.length(); ++i)
-	{
-		if(fname == tilesets[i].get()->name())
-		{
-			return tilesets[i];
-		}
 	}
 
+	QString fname = QString(bgName);
+
 	SharedTileset newTileset = Tileset::create(fname,map->tileWidth(),map->tileHeight(),0,0);
+
 	if(newTileset->loadFromImage(imgPath))
     {
 
 		newTileset->setFileName(imgPath);
-        tilesets.append(newTileset);
+		//tilesets.append(newTileset);
 		map->addTileset(newTileset);
 		return newTileset;
     }
@@ -540,7 +537,7 @@ Tiled::Map *GmxPlugin::read(const QString &fileName, QSettings *appSettings)
 
 
     QVector<TileLayer*> *mapLayers = new QVector<TileLayer*>();
-    QVector<SharedTileset> *tilesets = new QVector<SharedTileset>();
+	//QVector<SharedTileset> *tilesets = new QVector<SharedTileset>();
 
 	bool warnAboutSkippedTiles = false;
 
@@ -571,7 +568,7 @@ Tiled::Map *GmxPlugin::read(const QString &fileName, QSettings *appSettings)
                 else
                 {
 					tile = tile->next_sibling();
-					qWarning() << "Skipped tile with a tiles size that doesn't fit the map";
+					qDebug() << "Skipped tile with a tiles size that doesn't fit the map";
 					warnAboutSkippedTiles = true;
                     continue;
                 }
@@ -599,8 +596,8 @@ Tiled::Map *GmxPlugin::read(const QString &fileName, QSettings *appSettings)
                 tile = tile->next_sibling();
                 continue;
             }
-            SharedTileset tileset = tilesetWithName(*tilesets,bgName,newMap,imageDir);
-            if(tileset==nullptr)
+			SharedTileset tileset = tilesetWithName(bgName,newMap,imageDir);
+			if(tileset.isNull())
             {
                 tile = tile->next_sibling();
                 continue;
@@ -794,7 +791,7 @@ Tiled::Map *GmxPlugin::read(const QString &fileName, QSettings *appSettings)
 
 	doc.clear();
     delete mapLayers;
-    delete tilesets;
+	//delete tilesets;
 
 	if(warnAboutSkippedTiles)
 	{
@@ -1354,7 +1351,7 @@ bool GmxPlugin::write(const Map *map, const QString &fileName)
 						if (tileset->isCollection()) {
 							bgName = QFileInfo(tile->imageSource().path()).baseName();
 						} else {
-							bgName = tileset->name();
+							bgName = tileset->name().split(".",QString::SkipEmptyParts).at(0);
 							int tstColumns = tileset->columnCount();
 							int tstRows = tileset->rowCount();
 							int xInTilesetGrid = tile->id() % tileset->columnCount();
@@ -1544,7 +1541,7 @@ bool GmxPlugin::write(const Map *map, const QString &fileName)
                     if (tileset->isCollection()) {
                         bgName = QFileInfo(tile->imageSource().path()).baseName();
                     } else {
-                        bgName = tileset->name();
+						bgName = tileset->name().split(".",QString::SkipEmptyParts).at(0);;
 
                         int xInTilesetGrid = tile->id() % tileset->columnCount();
                         int yInTilesetGrid = tile->id() / tileset->columnCount();
