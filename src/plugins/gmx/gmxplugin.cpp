@@ -438,6 +438,7 @@ Tiled::Map *GmxPlugin::read(const QString &fileName, QSettings *appSettings)
     newMap->setQuadHeight(settings.quadHeigth);
 	newMap->setProperty("enableViews", enableViews);
 	newMap->setProperty("speed", roomSpeed);
+	newMap->setProperty("combineTilesOnExport", true);
 
     if(useBgColor)
     {
@@ -1736,16 +1737,15 @@ SharedTileset GmxTilesetPlugin::read(const QString &fileName)
 
 	QFileInfo imgFileInfo = QFileInfo(imgFile);
 
-	SharedTileset tileset = Tileset::create(imgFileInfo.completeBaseName(), tileWidth, tileHeight, 0, 0);
+	SharedTileset tileset = Tileset::create(imgFileInfo.fileName(), tileWidth, tileHeight, 0, 0);
 	tileset->setTileOffset(QPoint(tileXOff, tileYOff));
 	if(tileset->loadFromImage(filePath))
 	{
 		tileset->setGridSize(QSize(tileWidth, tileHeight));
 		tileset->setFileName(fileName);
-		qDebug()<<"New tileset " << tileset->name() << ", tw:"<<tileWidth << ", th:"<<tileHeight;
+		qDebug()<<"New tileset " << imgFileInfo.fileName() << ", " << tileset->name() << ", tw:"<<tileWidth << ", th:"<<tileHeight;
 		return tileset;
 	}
-
 	return SharedTileset();
 
 
