@@ -1530,7 +1530,7 @@ void PropertyBrowser::removeProperties()
     mGroupManager->clear();
     mPropertyToId.clear();
     mIdToProperty.clear();
-    mNameToProperty.clear();
+	mNameToProperty.clear();
     mCustomPropertiesGroup = nullptr;
 }
 

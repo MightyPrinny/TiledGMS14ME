@@ -310,18 +310,20 @@ static SharedTileset tilesetWithName(QVector<SharedTileset> &tilesets, const QSt
 		tilesets.append(tst);
 		return tst;
 	}*/
+	QString fname = QString(bgName).append(QStringLiteral(".png"));
 	for(int i=0; i<tilesets.length(); ++i)
 	{
-		if(bgName == tilesets[i].get()->name())
+		if(fname == tilesets[i].get()->name())
 		{
 			return tilesets[i];
 		}
 	}
 
-	SharedTileset newTileset = Tileset::create(bgName,map->tileWidth(),map->tileHeight(),0,0);
+	SharedTileset newTileset = Tileset::create(fname,map->tileWidth(),map->tileHeight(),0,0);
 	if(newTileset->loadFromImage(imgPath))
     {
 
+		newTileset->setFileName(imgPath);
         tilesets.append(newTileset);
 		map->addTileset(newTileset);
 		return newTileset;
@@ -355,10 +357,6 @@ void GmxPlugin::writeAttribute(const QString &qualifiedName, QString &value, QIO
     wrt("\"",d,codec);
 }
 
-//TODO
-//Use background.gmx files to load tilesets instead of assuming their tile size
-//and put tiles of the same tileSize in the same layer
-//Use the layer's depth*-1 as their zindex instead of it's position within the layer
 Tiled::Map *GmxPlugin::read(const QString &fileName, QSettings *appSettings)
 {
     using namespace rapidxml;
@@ -544,6 +542,8 @@ Tiled::Map *GmxPlugin::read(const QString &fileName, QSettings *appSettings)
     QVector<TileLayer*> *mapLayers = new QVector<TileLayer*>();
     QVector<SharedTileset> *tilesets = new QVector<SharedTileset>();
 
+	bool warnAboutSkippedTiles = false;
+
 	//Import tiles
     QDir imageDir = QDir(settings.imagesPath);
     while(tile)
@@ -560,11 +560,19 @@ Tiled::Map *GmxPlugin::read(const QString &fileName, QSettings *appSettings)
                 if(((w%tileWidth)==0) && ((h%tileWidth)==0))
                 {
                     htiles = w/tileWidth;
-                    vtiles = h/tileHeight;
+					vtiles = h/tileHeight;
+
+					//Some times tiles might be bigger than they should
+					//and game maker won't do anything about it,
+					//it will simple not draw the extra region
+					//wo we need to make sure we don't wrap around the tileset
+					//and just ignore the extra space
                 }
                 else
                 {
-                    tile = tile->next_sibling();
+					tile = tile->next_sibling();
+					qWarning() << "Skipped tile with a tiles size that doesn't fit the map";
+					warnAboutSkippedTiles = true;
                     continue;
                 }
             }
@@ -580,10 +588,11 @@ Tiled::Map *GmxPlugin::read(const QString &fileName, QSettings *appSettings)
                 y-=tileHeight;
             int xoff = x%tileWidth;
             int yoff = y%tileHeight;
-            x = int(floor(x/tileWidth)*tileWidth);
-            y = int(floor(y/tileHeight)*tileHeight);
+			x = (x/tileWidth)*tileWidth;
+			y = (y/tileHeight)*tileHeight;
             int depth = QString(tile->first_attribute("depth")->value()).toInt();
             QString bgName = QString(tile->first_attribute("bgName")->value());
+
             TileLayer *layer = tileLayerAtDepth(*mapLayers,depth,xoff, yoff,newMap);
             if(layer==nullptr)
             {
@@ -596,20 +605,34 @@ Tiled::Map *GmxPlugin::read(const QString &fileName, QSettings *appSettings)
                 tile = tile->next_sibling();
                 continue;
             }
+			if(htiles > 1)
+			{
+				int xInTileset = (xo/tileWidth);
+				if(xInTileset + htiles-1 >= tileset->columnCount()) {
+					htiles += tileset->columnCount() - 1 - (xInTileset + htiles-1);
+					qDebug()<<"trimmed tile horizontally";
+				}
+			}
+			if(vtiles > 1)
+			{
+				int yInTileset = (yo/tileHeight);
+				if(yInTileset + vtiles -1 >= tileset->rowCount()){
+					vtiles += tileset->columnCount() - 1 - (yInTileset + vtiles-1);
+					qDebug()<<"trimmed tile vertically";
+				}
+			}
             for(int ht = 0;ht<htiles;++ht)
             {
                 for(int vt=0; vt<vtiles;vt++)
-                {
-                    int tileID = ((xo/tileWidth)+ht) + ((yo/tileHeight)+vt)*tileset->columnCount();
-
-
+				{
+					int tileID = ((xo/tileWidth)+ht) + ((yo/tileHeight)+vt)*tileset->columnCount();
 					Cell ncell = Cell();
 					ncell.setTile(tileset.get(),tileID);
                     if(scaleX==-1)
                         ncell.setFlippedHorizontally(true);
                     if(scaleY==-1)
                         ncell.setFlippedVertically(true);
-                    layer->setCell(int(floor(x/tileWidth))+ht,int(floor(y/tileHeight))+vt,ncell);
+					layer->setCell(x/tileWidth+ht, y/tileHeight+vt,ncell);
                 }
             }
 
@@ -772,6 +795,11 @@ Tiled::Map *GmxPlugin::read(const QString &fileName, QSettings *appSettings)
 	doc.clear();
     delete mapLayers;
     delete tilesets;
+
+	if(warnAboutSkippedTiles)
+	{
+		mError = tr("Some tiles were skipped because their size didn't fit the tile size");
+	}
 
     return newMap;
 
