@@ -122,10 +122,6 @@ PreferencesDialog::PreferencesDialog(QWidget *parent)
 	connect(preferences, &Preferences::genTemplatesOutDirChanged,
 			this, &PreferencesDialog::genTemplatesDirChanged);
 
-	mUi->autoFlipObjectSetterCheckBox->setChecked(preferences->autoFlipObjectSetter());
-	connect(mUi->autoFlipObjectSetterCheckBox, &QCheckBox::toggled,
-			preferences, &Preferences::setAutoFlipObjectSetter);
-
 	connect(mUi->gmProjectBrowse, &QToolButton::clicked,
 			preferences, &Preferences::browseGMProjectPath);
 	connect(preferences, &Preferences::gmProjectPathChanged,
