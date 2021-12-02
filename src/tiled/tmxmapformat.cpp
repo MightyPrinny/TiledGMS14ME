@@ -119,7 +119,7 @@ TsxTilesetFormat::TsxTilesetFormat(QObject *parent)
 {
 }
 
-SharedTileset TsxTilesetFormat::read(const QString &fileName)
+SharedTileset TsxTilesetFormat::read(const QString &fileName, QSettings *prefs)
 {
     mError.clear();
 

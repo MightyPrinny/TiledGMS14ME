@@ -42,6 +42,8 @@ public:
     ObjectTemplate *loadObjectTemplate(const QString &fileName,
                                        QString *error = nullptr);
 
+	void allTemplatesChanged();
+
 signals:
     /**
      * Template has changed and instances need an update.

@@ -825,7 +825,7 @@ void MapEditor::handleExternalTilesetsAndImages(const QStringList &fileNames,
         // Check if the file is has a supported tileset format
         TilesetFormat *tilesetFormat = findSupportingTilesetFormat(fileName);
         if (tilesetFormat) {
-            tileset = tilesetFormat->read(fileName);
+			tileset = tilesetFormat->read(fileName, Preferences::instance()->settings());
             if (tileset) {
                 tileset->setFormat(tilesetFormat);
                 tilesets.append(tileset);

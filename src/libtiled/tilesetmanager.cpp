@@ -47,7 +47,7 @@ TilesetManager *TilesetManager::mInstance;
 TilesetManager::TilesetManager():
     mWatcher(new FileSystemWatcher(this)),
     mAnimationDriver(new TileAnimationDriver(this)),
-    mReloadTilesetsOnChange(false)
+	mReloadTilesetsOnChange(false)
 {
     connect(mWatcher, &FileSystemWatcher::fileChanged,
             this, &TilesetManager::fileChanged);
@@ -131,6 +131,26 @@ SharedTileset TilesetManager::findTilesetAbsolute(const QString &fileName) const
     }
 
     return SharedTileset();
+}
+
+SharedTileset TilesetManager::findTilesetAbsoluteWithSize(const QString &fileName, const QSize &tileSize, const int spacing, const int margin) const
+{
+	for (Tileset *tileset : mTilesets)
+	{
+		QDir dir = QDir(tileset->fileName());
+		QDir dir2 = QDir(fileName);
+		if(tileset->tileSize() == tileSize && tileset->margin() == margin && tileset->tileSpacing() == spacing)
+		{
+			if ( dir.absolutePath() == dir2.absolutePath())
+			{
+
+				return tileset->sharedPointer();
+			}
+		}
+
+	}
+
+	return SharedTileset();
 }
 
 /**

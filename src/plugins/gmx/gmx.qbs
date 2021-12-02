@@ -4,6 +4,9 @@ TiledPlugin {
     cpp.defines: base.concat(["GMX_LIBRARY"])
 
     files: [
+        "bgximporterdialog.cpp",
+        "bgximporterdialog.h",
+        "bgximporterdialog.ui",
         "gmx_global.h",
         "gmxplugin.cpp",
         "gmxplugin.h",

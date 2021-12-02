@@ -208,7 +208,7 @@ JsonTilesetFormat::JsonTilesetFormat(QObject *parent)
 {
 }
 
-Tiled::SharedTileset JsonTilesetFormat::read(const QString &fileName)
+Tiled::SharedTileset JsonTilesetFormat::read(const QString &fileName, QSettings *prefs)
 {
     QFile file(fileName);
 

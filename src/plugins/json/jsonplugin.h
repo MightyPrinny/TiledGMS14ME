@@ -83,7 +83,7 @@ class JSONSHARED_EXPORT JsonTilesetFormat : public Tiled::TilesetFormat
 public:
     JsonTilesetFormat(QObject *parent = nullptr);
 
-    Tiled::SharedTileset read(const QString &fileName) override;
+	Tiled::SharedTileset read(const QString &fileName, QSettings *prefs = nullptr) override;
     bool supportsFile(const QString &fileName) const override;
 
     bool write(const Tiled::Tileset &tileset, const QString &fileName) override;

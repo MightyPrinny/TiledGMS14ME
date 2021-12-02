@@ -41,6 +41,12 @@ ImporterSettings RoomImporterDialog::getSettings()
 void RoomImporterDialog::setDefaultPaths(QSettings *appSettings)
 {
 	QVariant val = appSettings->value("Interface/GMProjectPath");
+	QSize tileSize = appSettings->value(QStringLiteral("GMSMESizes/lastUsedMapTilesize"), QSize(16,16)).toSize();
+	mUi->tileWidth->setValue(tileSize.width());
+	mUi->tileHeight->setValue(tileSize.height());
+	QSize quadSize = appSettings->value(QStringLiteral("GMSMESizes/LastUsedQuadSize"), QSize(256,224)).toSize();
+	mUi->quadWidth->setValue(quadSize.width());
+	mUi->quadHeight->setValue(quadSize.height());
 	if(val.canConvert(QVariant::String))
 	{
 		QString str = val.toString();

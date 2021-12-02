@@ -861,5 +861,35 @@ void Preferences::setObjectTypesFile(const QString &fileName)
     mObjectTypesFile = fileName;
     mSettings->setValue(QLatin1String("Storage/ObjectTypesFile"), fileName);
 
-    emit stampsDirectoryChanged(fileName);
+	emit stampsDirectoryChanged(fileName);
+}
+
+QSize Preferences::lastUsedMapTileSize()
+{
+	return mSettings->value(QStringLiteral("GMSMESizes/lastUsedMapTilesize"), QSize(16,16)).toSize();
+}
+
+QSize Preferences::lastUsedQuadSize()
+{
+	return mSettings->value(QStringLiteral("GMSMESizes/LastUsedQuadSize"), QSize(16,16)).toSize();
+}
+
+QSize Preferences::lastUsedTilesetTileSize()
+{
+	return mSettings->value(QStringLiteral("GMSMESizes/LastUsedTilesetTileSize"), QSize(16,16)).toSize();
+}
+
+void Preferences::setLastUsedMapTileSize(QSize size)
+{
+	mSettings->setValue(QStringLiteral("GMSMESizes/lastUsedMapTilesize"), size);
+}
+
+void Preferences::setLastUsedQuadSize(QSize size)
+{
+	mSettings->setValue(QStringLiteral("GMSMESizes/LastUsedQuadSize"), size);
+}
+
+void Preferences::setLastUsedTilesetTileSize(QSize size)
+{
+	mSettings->setValue(QStringLiteral("GMSMESizes/LastUsedTilesetTileSize"), size);
 }

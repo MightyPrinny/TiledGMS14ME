@@ -36,6 +36,7 @@
 #include <QString>
 #include <QSet>
 #include <QTimer>
+#include <unordered_map>
 
 namespace Tiled {
 
@@ -67,6 +68,7 @@ public:
     void setReloadTilesetsOnChange(bool enabled);
     bool reloadTilesetsOnChange() const;
     SharedTileset findTilesetAbsolute(const QString &fileName) const;
+	SharedTileset findTilesetAbsoluteWithSize(const QString &fileName, const QSize &tileSize, const int spacing = 0, const int margin = 0) const;
 
     void setAnimateTiles(bool enabled);
     bool animateTiles() const;

@@ -66,5 +66,13 @@ ObjectTemplate *TemplateManager::loadObjectTemplate(const QString &fileName, QSt
 
     mObjectTemplates.insert(fileName, objectTemplate);
 
-    return objectTemplate;
+	return objectTemplate;
+}
+
+void TemplateManager::allTemplatesChanged()
+{
+	for(auto templateInstance : mObjectTemplates)
+	{
+		emit objectTemplateChanged(templateInstance);
+	}
 }

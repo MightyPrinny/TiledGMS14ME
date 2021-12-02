@@ -14,6 +14,7 @@
 #include <QCoreApplication>
 #include <preferences.h>
 #include <QMessageBox>
+#include <templatemanager.h>
 
 using namespace Tiled;
 
@@ -860,6 +861,7 @@ bool GameMakerObjectImporter::generateTemplates(QString dir, QString outputDirPa
 			TilesetManager::instance()->reloadImages(tst.get());
 		}
 	}
+	TemplateManager::instance()->allTemplatesChanged();
 
 	progress.close();
 	return true;

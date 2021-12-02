@@ -58,6 +58,7 @@
 #include <QStringBuilder>
 
 #include "roomimporterdialog.h"
+#include "bgximporterdialog.h"
 
 using namespace Tiled;
 using namespace Gmx;
@@ -305,11 +306,10 @@ static SharedTileset tilesetWithName(const QString &bgName, Map *map, QDir &imag
 	QDir imgDir = QDir(imageDir.path());
 	imgDir.cdUp();
 
-	SharedTileset tst = TilesetManager::instance()->findTilesetAbsolute(imgPath);
+	SharedTileset tst = TilesetManager::instance()->findTilesetAbsoluteWithSize(imgPath, map->tileSize());
 
 	if(!tst.isNull())
 	{
-		//tilesets.append(tst);
 		return tst;
 	}
 
@@ -321,7 +321,6 @@ static SharedTileset tilesetWithName(const QString &bgName, Map *map, QDir &imag
     {
 
 		newTileset->setFileName(imgPath);
-		//tilesets.append(newTileset);
 		map->addTileset(newTileset);
 		return newTileset;
     }
@@ -358,7 +357,7 @@ Tiled::Map *GmxPlugin::read(const QString &fileName, QSettings *appSettings)
 {
     using namespace rapidxml;
     using namespace std;
-
+	mError = QStringLiteral("");
     QFile file(fileName);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
         mError = tr("Could not open file for reading.");
@@ -385,12 +384,18 @@ Tiled::Map *GmxPlugin::read(const QString &fileName, QSettings *appSettings)
 	}
 
     sDialog->exec();
-    delete sDialog;
+	delete sDialog;
 
     if(!accepted)
     {
+		mError = tr("Operation cancelled");
         return nullptr;
     }
+
+	appSettings->setValue(QStringLiteral("GMSMESizes/lastUsedMapTilesize"), QSize(settings.tileWidth, settings.tileHeigth));
+	appSettings->setValue(QStringLiteral("GMSMESizes/LastUsedQuadSize"), QSize(settings.quadWidth, settings.quadHeigth));
+
+
 	qDebug()<<"Importing gmx room";
     xml_document<> doc;
     xml_node<> * root_node;
@@ -618,18 +623,31 @@ Tiled::Map *GmxPlugin::read(const QString &fileName, QSettings *appSettings)
 					qDebug()<<"trimmed tile vertically";
 				}
 			}
+			int maxTileId = tileset->rowCount()*tileset->columnCount() - 1;
             for(int ht = 0;ht<htiles;++ht)
             {
                 for(int vt=0; vt<vtiles;vt++)
 				{
 					int tileID = ((xo/tileWidth)+ht) + ((yo/tileHeight)+vt)*tileset->columnCount();
 					Cell ncell = Cell();
-					ncell.setTile(tileset.get(),tileID);
-                    if(scaleX==-1)
-                        ncell.setFlippedHorizontally(true);
-                    if(scaleY==-1)
-                        ncell.setFlippedVertically(true);
-					layer->setCell(x/tileWidth+ht, y/tileHeight+vt,ncell);
+					if(tileID > maxTileId)
+					{
+						qDebug() << "Tile with invalid tileId in tileset:" << tileset->name()
+								<<", tst dims: " << QPoint(tileset->rowCount(), tileset->columnCount())
+								<< ", tile pos(in tileset): " << QPoint(((xo/tileWidth)+ht) ,(yo/tileHeight)+vt)
+								<<", at map pos:" << QPoint(x/tileWidth + ht, y/tileHeight+vt)
+								   ;
+
+					}
+					else
+					{
+						ncell.setTile(tileset.get(),tileID);
+						if(scaleX==-1)
+							ncell.setFlippedHorizontally(true);
+						if(scaleY==-1)
+							ncell.setFlippedVertically(true);
+						layer->setCell(x/tileWidth+ht, y/tileHeight+vt,ncell);
+					}
                 }
             }
 
@@ -1340,6 +1358,7 @@ bool GmxPlugin::write(const Map *map, const QString &fileName)
 						if (cell.flippedVertically()) {
 							scaleY = -1;
 							pixelY += tile->height();
+
 						}
 
 						QString bgName;
@@ -1354,8 +1373,9 @@ bool GmxPlugin::write(const Map *map, const QString &fileName)
 							bgName = tileset->name().split(".",QString::SkipEmptyParts).at(0);
 							int tstColumns = tileset->columnCount();
 							int tstRows = tileset->rowCount();
+
 							int xInTilesetGrid = tile->id() % tileset->columnCount();
-							int yInTilesetGrid = (int)(tile->id() / tileset->columnCount());
+							int yInTilesetGrid = (tile->id() / tileset->columnCount());
 
 							xo = tileset->margin() + (tileset->tileSpacing() + tileset->tileWidth()) * xInTilesetGrid;
 							yo = tileset->margin() + (tileset->tileSpacing() + tileset->tileHeight()) * yInTilesetGrid;
@@ -1464,7 +1484,29 @@ bool GmxPlugin::write(const Map *map, const QString &fileName)
 										qDebug() << "Fail";
 									}
 								}
+							}
+							else //No Combine
+							{
+								if(tile->width() > map->tileWidth())
+								{
+									pixelX = x*map->tileWidth();
+									if(cell.flippedHorizontally())
+									{
+										pixelX += map->tileWidth();
+									}
+									qDebug() << tile->width();
+								}
+								if(tile->height() > map->tileHeight())
+								{
+									pixelY = y*map->tileHeight();
 
+									pixelY -= tile->height() - map->tileHeight();
+									if(cell.flippedVertically())
+									{
+										pixelY += map->tileHeight();
+									}
+									qDebug() << tile->height();
+								}
 							}
 						}
 
@@ -1627,7 +1669,7 @@ GmxTilesetPlugin::GmxTilesetPlugin(QObject *parent)
 
 }
 
-SharedTileset GmxTilesetPlugin::read(const QString &fileName)
+SharedTileset GmxTilesetPlugin::read(const QString &fileName, QSettings *prefs)
 {
 	using namespace rapidxml;
 	using namespace std;
@@ -1639,6 +1681,34 @@ SharedTileset GmxTilesetPlugin::read(const QString &fileName)
 		return SharedTileset();
 	}
 	file.close();
+
+	bool loadTileSizeFromBg = true;
+	int tileWidth = 16;
+	int tileHeight = 16;
+
+	if(prefs != nullptr)
+	{
+		auto diag = new BGXImporterDialog();
+		diag->SetDefaultsFromSettings(prefs);
+		diag->exec();
+		if(!diag->accepted)
+		{
+			mError = tr("Operation cancelled");
+			return SharedTileset();
+		}
+		else
+		{
+			loadTileSizeFromBg = diag->loadFromBg;
+			if(!loadTileSizeFromBg)
+			{
+				tileWidth = diag->tileSize.width();
+				tileHeight = diag->tileSize.height();
+
+				prefs->setValue(QLatin1String("GMSMESizes/LastUsedTilesetTileSize"), QSize(tileWidth,tileHeight));
+			}
+		}
+	}
+
 	QDir bgDir = QDir(fileName);
 	bgDir.cdUp();
 	qDebug() << "BgPath: "<<bgDir.path();
@@ -1661,8 +1731,7 @@ SharedTileset GmxTilesetPlugin::read(const QString &fileName)
 
 	xml_node<> *node = root_node->first_node("istileset");
 
-	int tileWidth = 16;
-	int tileHeight = 16;
+
 	int tileYOff = 0;
 	int tileXOff = 0;
 	//int tileHSep = 0;
@@ -1684,23 +1753,26 @@ SharedTileset GmxTilesetPlugin::read(const QString &fileName)
 
 	while(node)
 	{
-		if(node->name() == QStringLiteral("tilewidth"))
+		if(loadTileSizeFromBg)
 		{
-			tileWidth = QString(node->value()).toInt();
+			if(node->name() == QStringLiteral("tilewidth"))
+			{
+				tileWidth = QString(node->value()).toInt();
+			}
+			else if(node->name() == QStringLiteral("tileheight"))
+			{
+				tileHeight = QString(node->value()).toInt();
+			}
+			else if(node->name() == QStringLiteral("tilexoff"))
+			{
+				tileXOff = QString(node->value()).toInt();
+			}
+			else if(node->name() == QStringLiteral("tileyoff"))
+			{
+				tileYOff = QString(node->value()).toInt();
+			}
 		}
-		else if(node->name() == QStringLiteral("tileheight"))
-		{
-			tileHeight = QString(node->value()).toInt();
-		}
-		else if(node->name() == QStringLiteral("tilexoff"))
-		{
-			tileXOff = QString(node->value()).toInt();
-		}
-		else if(node->name() == QStringLiteral("tileyoff"))
-		{
-			tileYOff = QString(node->value()).toInt();
-		}
-		/*
+				/*
 		else if(node->name() == QStringLiteral("tilehsep"))
 		{
 			tileHSep = QString(node->value()).toInt();
@@ -1731,17 +1803,9 @@ SharedTileset GmxTilesetPlugin::read(const QString &fileName)
 		return SharedTileset();
 	}
 
-	SharedTileset sh = TilesetManager::instance()->findTileset(filePath);
+	SharedTileset sh = TilesetManager::instance()->findTilesetAbsoluteWithSize(filePath,QSize(tileWidth, tileHeight));
 	if(!sh.isNull())
 	{
-		if(sh->tileWidth() != tileWidth || sh->tileHeight() != sh->tileHeight())
-		{
-			sh->setTileSize(QSize(tileWidth, tileHeight));
-		}
-		if(sh->tileOffset() != QPoint(tileXOff, tileYOff))
-		{
-			sh->setTileOffset(QPoint(tileXOff, tileYOff));
-		}
 		qDebug() << "reused tileset";
 		return sh;
 	}
@@ -1753,7 +1817,7 @@ SharedTileset GmxTilesetPlugin::read(const QString &fileName)
 	if(tileset->loadFromImage(filePath))
 	{
 		tileset->setGridSize(QSize(tileWidth, tileHeight));
-		tileset->setFileName(fileName);
+		tileset->setFileName(filePath);
 		qDebug()<<"New tileset " << imgFileInfo.fileName() << ", " << tileset->name() << ", tw:"<<tileWidth << ", th:"<<tileHeight;
 		return tileset;
 	}

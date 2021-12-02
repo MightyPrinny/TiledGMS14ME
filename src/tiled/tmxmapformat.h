@@ -87,7 +87,7 @@ class TsxTilesetFormat : public TilesetFormat
 public:
     TsxTilesetFormat(QObject *parent = nullptr);
 
-    SharedTileset read(const QString &fileName) override;
+	SharedTileset read(const QString &fileName, QSettings *prefs = nullptr) override;
 
     bool write(const Tileset &tileset, const QString &fileName) override;
 

@@ -143,6 +143,14 @@ public:
     QString objectTypesFile() const;
     void setObjectTypesFile(const QString &filePath);
 
+	QSize lastUsedMapTileSize();
+	QSize lastUsedQuadSize();
+	QSize lastUsedTilesetTileSize();
+
+	void setLastUsedMapTileSize(QSize size);
+	void setLastUsedQuadSize(QSize size);
+	void setLastUsedTilesetTileSize(QSize size);
+
     QDate firstRun() const;
     int runCount() const;
 

@@ -30,6 +30,7 @@
 
 #include "fileformat.h"
 #include "tileset.h"
+#include <QSettings>
 
 namespace Tiled {
 
@@ -52,7 +53,7 @@ public:
      * Reads the tileset and returns a new Tileset instance, or a null shared
      * pointer if reading failed.
      */
-    virtual SharedTileset read(const QString &fileName) = 0;
+	virtual SharedTileset read(const QString &fileName, QSettings *prefs = nullptr) = 0;
 
     /**
      * Writes the given \a tileset based on the suggested \a fileName.
@@ -86,7 +87,7 @@ public:
     {}
 
     Capabilities capabilities() const override { return Write; }
-    SharedTileset read(const QString &) override { return SharedTileset(); }
+	SharedTileset read(const QString &, QSettings *prefs = nullptr) override { return SharedTileset(); }
     bool supportsFile(const QString &) const override { return false; }
 };
 

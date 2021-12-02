@@ -130,7 +130,7 @@ bool TilesetDocument::reload(QString *error)
 
     auto format = mTileset->format();
 
-    SharedTileset tileset = format->read(fileName());
+	SharedTileset tileset = format->read(fileName(), Preferences::instance()->settings());
 
     if (tileset.isNull()) {
         if (error)
@@ -151,7 +151,7 @@ TilesetDocumentPtr TilesetDocument::load(const QString &fileName,
                                          TilesetFormat *format,
                                          QString *error)
 {
-    SharedTileset tileset = format->read(fileName);
+	SharedTileset tileset = format->read(fileName, Preferences::instance()->settings());
 
     if (tileset.isNull()) {
         if (error)
