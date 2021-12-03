@@ -760,6 +760,16 @@ Tiled::Map *GmxPlugin::read(const QString &fileName, QSettings *appSettings)
 				obj->setProperty("colour", color);
 				if(locked)
 					obj->setProperty("locked", locked);
+
+				//Make sure these don't get reloaded when it syncs with the template
+				auto propsChanged = obj->changedProperties();
+				auto changedProps = MapObject::Property::RotationProperty
+								  | MapObject::Property::SizeProperty
+								  | MapObject::Property::VisibleProperty
+								  | MapObject::Property::CellProperty
+								  | MapObject::Property::TypeProperty;
+				propsChanged.setFlag((MapObject::Property)changedProps, true);
+				obj->setChangedProperties(propsChanged);
                 objects->addObject(obj);
 
 

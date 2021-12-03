@@ -407,7 +407,15 @@ void MapObject::syncWithTemplate()
     }
 
     if (!propertyChanged(MapObject::CellProperty))
-        setCell(base->cell());
+	{
+		setCell(base->cell());
+	}
+	else
+	{
+		auto _cell = cell();
+		_cell.setTile(base->cell().tile());
+		setCell(_cell);
+	}
 
     if (!propertyChanged(MapObject::RotationProperty))
         setRotation(base->rotation());

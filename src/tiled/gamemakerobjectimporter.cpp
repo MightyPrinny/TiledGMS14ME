@@ -15,6 +15,7 @@
 #include <preferences.h>
 #include <QMessageBox>
 #include <templatemanager.h>
+#include <documentmanager.h>
 
 using namespace Tiled;
 
@@ -156,13 +157,19 @@ bool GameMakerObjectImporter::generateTemplates(QString dir, QString outputDirPa
 {
 	if(dir.isEmpty() || outputDirPath.isEmpty())
     {
-		printf("Generate Templates: a path was empty");
+		QMessageBox::warning(nullptr ,QStringLiteral("A path was empty"), QStringLiteral("Can't generate templates with an empty path"));
 		return false;
     }
 
+	if(Tiled::Internal::DocumentManager::instance()->documents().count() > 0)
+	{
+		QMessageBox::warning(nullptr ,QStringLiteral("Can't generate templates"), QStringLiteral("Close all documents before generating templates"));
+		return false;
+	}
 
     using namespace rapidxml;
     using namespace std;
+
 	bool valid = true;
     //Directories
     QDir rootDir =  QDir(dir);
@@ -828,7 +835,14 @@ bool GameMakerObjectImporter::generateTemplates(QString dir, QString outputDirPa
 	typesWriter.writeEndDocument();//Image collection
 
     imageCollection->close();
-    delete imageCollection;
+
+	delete imageCollection;
+	delete imageList;
+	delete objectFolderMap;
+	delete imageIDMap;
+
+	TemplateManager::instance()->deleteInstance();
+	TilesetManager::instance()->deleteInstance();
 
 	if(updateTypesInEditor)
 	{
@@ -844,25 +858,12 @@ bool GameMakerObjectImporter::generateTemplates(QString dir, QString outputDirPa
 			auto *prefs = Internal::Preferences::instance();
 			prefs->setObjectTypesFile(typesFile->fileName());
 			prefs->setObjectTypes(objectTypes);
+			qDebug() << "Types reloaded";
 		}
 
 	}
+	delete typesFile;
 
-    delete typesFile;
-    delete imageList;
-    delete objectFolderMap;
-    delete imageIDMap;
-
-	if(needTilesetReload)
-	{
-		auto tst = TilesetManager::instance()->findTileset(outputDir.filePath(QStringLiteral("images.tsx")));
-		if(!tst.isNull())
-		{
-
-			TilesetManager::instance()->reloadImages(tst.get());
-		}
-	}
-	TemplateManager::instance()->allTemplatesChanged();
 
 	progress.close();
 	return true;

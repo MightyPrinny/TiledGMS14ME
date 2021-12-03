@@ -71,8 +71,5 @@ ObjectTemplate *TemplateManager::loadObjectTemplate(const QString &fileName, QSt
 
 void TemplateManager::allTemplatesChanged()
 {
-	for(auto templateInstance : mObjectTemplates)
-	{
-		emit objectTemplateChanged(templateInstance);
-	}
+	mObjectTemplates.clear();
 }
