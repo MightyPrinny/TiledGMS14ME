@@ -856,8 +856,9 @@ bool GameMakerObjectImporter::generateTemplates(QString dir, QString outputDirPa
 	if(needTilesetReload)
 	{
 		auto tst = TilesetManager::instance()->findTileset(outputDir.filePath(QStringLiteral("images.tsx")));
-		if(tst.isNull())
+		if(!tst.isNull())
 		{
+
 			TilesetManager::instance()->reloadImages(tst.get());
 		}
 	}
