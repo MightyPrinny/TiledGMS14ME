@@ -1671,8 +1671,75 @@ GmxTilesetPlugin::GmxTilesetPlugin(QObject *parent)
 
 }
 
+SharedTileset GmxTilesetPlugin::tstFromPng(const QString &fileName, QSettings *prefs)
+{
+	QFile file(fileName);
+	if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+		mError = tr("Could not open file for reading.");
+		return SharedTileset();
+	}
+	file.close();
+
+	using namespace std;
+	using namespace Tiled;
+	int tileWidth = 16;
+	int tileHeight = 16;
+
+	if(prefs != nullptr)
+	{
+		auto diag = new BGXImporterDialog();
+		diag->SetDefaultsFromSettings(prefs);
+		diag->exec();
+		if(!diag->accepted)
+		{
+			mError = tr("Operation cancelled");
+			return SharedTileset();
+		}
+		else
+		{
+			tileWidth = diag->tileSize.width();
+			tileHeight = diag->tileSize.height();
+
+			prefs->setValue(QLatin1String("GMSMESizes/LastUsedTilesetTileSize"), QSize(tileWidth,tileHeight));
+		}
+	}
+	QFile imgFile(fileName);
+	if(!imgFile.exists())
+	{
+		mError = tr("Invalid background, image file doesn't exist");
+		qDebug() << imgFile.fileName();
+		return SharedTileset();
+	}
+
+	SharedTileset sh = TilesetManager::instance()->findTilesetAbsoluteWithSize(fileName,QSize(tileWidth, tileHeight));
+	if(!sh.isNull())
+	{
+		qDebug() << "reused tileset";
+		return sh;
+	}
+
+	QFileInfo imgFileInfo = QFileInfo(imgFile);
+
+	SharedTileset tileset = Tileset::create(imgFileInfo.fileName(), tileWidth, tileHeight, 0, 0);
+
+	if(tileset->loadFromImage(fileName))
+	{
+		tileset->setGridSize(QSize(tileWidth, tileHeight));
+		tileset->setFileName(fileName);
+		qDebug()<<"New tileset " << imgFileInfo.fileName() << ", " << tileset->name() << ", tw:"<<tileWidth << ", th:"<<tileHeight;
+		return tileset;
+	}
+	return SharedTileset();
+
+	return SharedTileset();
+}
+
 SharedTileset GmxTilesetPlugin::read(const QString &fileName, QSettings *prefs)
 {
+	if(fileName.endsWith(".png"))
+	{
+		return tstFromPng(fileName, prefs);
+	}
 	using namespace rapidxml;
 	using namespace std;
 	using namespace Tiled;
@@ -1749,7 +1816,6 @@ SharedTileset GmxTilesetPlugin::read(const QString &fileName, QSettings *prefs)
 	}
 
 	//node = root_node->first_node();
-
 	QString filePath;
 
 
@@ -1831,13 +1897,13 @@ SharedTileset GmxTilesetPlugin::read(const QString &fileName, QSettings *prefs)
 
 bool GmxTilesetPlugin::write(const Tileset &tst, const QString &filename)
 {
-
+	return false;
 }
 
 bool GmxTilesetPlugin::supportsFile(const QString &fileName) const
 {
 
-	return fileName.endsWith(QStringLiteral(".background.gmx"));
+	return fileName.endsWith(QStringLiteral(".background.gmx")) || fileName.endsWith(QStringLiteral(".png"));
 }
 
 QString GmxTilesetPlugin::errorString() const
@@ -1857,7 +1923,7 @@ FileFormat::Capabilities GmxTilesetPlugin::capabilities() const
 
 QString GmxTilesetPlugin::nameFilter() const
 {
-	return QStringLiteral("GameMaker background files (*.background.gmx)");
+	return QStringLiteral("GameMaker background files (*.background.gmx, *.png)");
 }
 
 void GmxTopPlugin::initialize()

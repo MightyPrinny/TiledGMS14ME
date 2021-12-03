@@ -28,6 +28,7 @@
 #include <QImage>
 #include <unordered_map>
 #include <plugin.h>
+using namespace Tiled;
 
 namespace Gmx {
 
@@ -80,6 +81,7 @@ public:
 	QString nameFilter() const override;
 	QString errorString() const override;
 	QString shortName() const override;
+	SharedTileset tstFromPng(const QString &fileName, QSettings *prefs);
 protected:
 	QString mError;
 
