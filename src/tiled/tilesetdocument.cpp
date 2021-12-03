@@ -33,6 +33,7 @@
 #include <QCoreApplication>
 #include <QFileInfo>
 #include <QUndoStack>
+#include <preferences.h>
 
 namespace Tiled {
 namespace Internal {

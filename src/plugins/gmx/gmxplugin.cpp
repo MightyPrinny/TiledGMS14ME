@@ -1312,7 +1312,7 @@ bool GmxPlugin::write(const Map *map, const QString &fileName)
 	stream.writeStartElement("tiles");
     int depthOff = 0;
     int layerCount = 0;
-	std::unordered_map <ulong, QPoint> processedTiles;
+	std::unordered_map <long, QPoint> processedTiles;
 	processedTiles.reserve((map->width()*map->height())/2);
 
 
@@ -1388,7 +1388,7 @@ bool GmxPlugin::write(const Map *map, const QString &fileName)
 							&& (tile->width() == map->tileWidth()) && (tile->height() == map->tileHeight()))
 							{
 								int maxCheckXOff = tstColumns-1 - xInTilesetGrid;
-								int maxCheckYOff= tstRows-1 - yInTilesetGrid;
+								int maxCheckYOff = tstRows-1 - yInTilesetGrid;
 
 								int combineXRight = 0;
 								int combineYBottom = 0;
@@ -1429,6 +1429,7 @@ bool GmxPlugin::write(const Map *map, const QString &fileName)
 												&& (sTileYInGrid == (yInTilesetGrid + checkY)))
 												{
 													currentArea = ((checkX+1)*(checkY+1));
+
 													acceptedTile = true;
 													if(currentArea > combineArea)
 													{
@@ -1444,11 +1445,16 @@ bool GmxPlugin::write(const Map *map, const QString &fileName)
 										rowJump = false;
 										if(!acceptedTile)
 										{
+											if(checkX > 0)
+												maxCheckXOff = checkX-1;
+											else
+												maxCheckXOff = 0;
 											if(!prevAccepted)
 											{
 												maxCheckXOff = -1;
 												maxCheckYOff = -1;
 											}
+
 											prevAccepted = false;
 											break;
 										}
@@ -1496,7 +1502,7 @@ bool GmxPlugin::write(const Map *map, const QString &fileName)
 									{
 										pixelX += map->tileWidth();
 									}
-									qDebug() << tile->width();
+
 								}
 								if(tile->height() > map->tileHeight())
 								{
@@ -1507,7 +1513,7 @@ bool GmxPlugin::write(const Map *map, const QString &fileName)
 									{
 										pixelY += map->tileHeight();
 									}
-									qDebug() << tile->height();
+
 								}
 							}
 						}
