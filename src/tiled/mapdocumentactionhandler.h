@@ -74,6 +74,7 @@ public:
     QAction *actionLayerViaCut() const { return mActionLayerViaCut; }
     QAction *actionGroupLayers() const { return mActionGroupLayers; }
     QAction *actionUngroupLayers() const { return mActionUngroupLayers; }
+	QAction *actionAddTileLayerForGms() const {return mActionAddTileLayerForGms;}
 
     QAction *actionDuplicateLayer() const { return mActionDuplicateLayer; }
     QAction *actionMergeLayerDown() const { return mActionMergeLayerDown; }
@@ -110,6 +111,7 @@ public slots:
     void autocrop();
 
     void addTileLayer();
+	void addTileLayerGmx();
     void addObjectGroup();
     void addImageLayer();
     void addGroupLayer();
@@ -149,6 +151,7 @@ private:
     QAction *mActionAutocrop;
 
     QAction *mActionAddTileLayer;
+	QAction *mActionAddTileLayerForGms;
     QAction *mActionAddObjectGroup;
     QAction *mActionAddImageLayer;
     QAction *mActionAddGroupLayer;

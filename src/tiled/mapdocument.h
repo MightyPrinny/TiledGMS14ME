@@ -239,6 +239,7 @@ public:
 
     bool templateAllowed(const ObjectTemplate *objectTemplate) const;
 
+	Layer *addLayer(Layer::TypeFlag layerType, QString name);
 signals:
     /**
      * Emitted when the selected tile region changes. Sends the currently

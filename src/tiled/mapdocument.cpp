@@ -454,6 +454,41 @@ Layer *MapDocument::addLayer(Layer::TypeFlag layerType)
     return layer;
 }
 
+Layer *MapDocument::addLayer(Layer::TypeFlag layerType, QString name)
+{
+	Layer *layer = nullptr;
+	if(!name.endsWith(QStringLiteral("%1")))
+	{
+		name = name.append(QStringLiteral(" %1"));
+	}
+	name = name.arg(mMap->tileLayerCount() + 1);
+	switch (layerType) {
+	case Layer::TileLayerType:
+
+		layer = new TileLayer(name, 0, 0, mMap->width(), mMap->height());
+		break;
+	case Layer::ObjectGroupType:
+		layer = new ObjectGroup(name, 0, 0);
+		break;
+	case Layer::ImageLayerType:
+		layer = new ImageLayer(name, 0, 0);
+		break;
+	case Layer::GroupLayerType:
+		layer = new GroupLayer(name, 0, 0);
+		break;
+	}
+	Q_ASSERT(layer);
+
+	auto parentLayer = mCurrentLayer ? mCurrentLayer->parentLayer() : nullptr;
+	const int index = layerIndex(mCurrentLayer) + 1;
+	mUndoStack->push(new AddLayer(this, index, layer, parentLayer));
+	setCurrentLayer(layer);
+
+	emit editLayerNameRequested();
+
+	return layer;
+}
+
 /**
  * Creates a new group layer, putting the given \a layer inside the group.
  */

@@ -45,6 +45,7 @@
 #include <QMenu>
 #include <QtCore/qmath.h>
 #include <QStyle>
+#include <QInputDialog>
 
 #include "qtcompat_p.h"
 
@@ -76,6 +77,9 @@ MapDocumentActionHandler::MapDocumentActionHandler(QObject *parent)
 
     addTileLayerIcon.addFile(QLatin1String(":/images/32x32/layer-tile.png"));
     addObjectLayerIcon.addFile(QLatin1String(":/images/32x32/layer-object.png"));
+
+	mActionAddTileLayerForGms = new QAction(this);
+	mActionAddTileLayerForGms->setIcon(addTileLayerIcon);
 
     mActionAddTileLayer = new QAction(this);
     mActionAddTileLayer->setIcon(addTileLayerIcon);
@@ -154,6 +158,7 @@ MapDocumentActionHandler::MapDocumentActionHandler(QObject *parent)
     connect(mActionCropToSelection, &QAction::triggered, this, &MapDocumentActionHandler::cropToSelection);
     connect(mActionAutocrop, &QAction::triggered, this, &MapDocumentActionHandler::autocrop);
     connect(mActionAddTileLayer, &QAction::triggered, this, &MapDocumentActionHandler::addTileLayer);
+	connect(mActionAddTileLayerForGms, &QAction::triggered, this, &MapDocumentActionHandler::addTileLayerGmx);
     connect(mActionAddObjectGroup, &QAction::triggered, this, &MapDocumentActionHandler::addObjectGroup);
     connect(mActionAddImageLayer, &QAction::triggered, this, &MapDocumentActionHandler::addImageLayer);
     connect(mActionAddGroupLayer, &QAction::triggered, this, &MapDocumentActionHandler::addGroupLayer);
@@ -194,6 +199,7 @@ void MapDocumentActionHandler::retranslateUi()
     mActionAutocrop->setText(tr("Autocrop"));
 
     mActionAddTileLayer->setText(tr("&Tile Layer"));
+	mActionAddTileLayerForGms->setText(tr("&Tile Layer With Depth"));
     mActionAddObjectGroup->setText(tr("&Object Layer"));
     mActionAddImageLayer->setText(tr("&Image Layer"));
     mActionAddGroupLayer->setText(tr("&Group Layer"));
@@ -253,6 +259,7 @@ QMenu *MapDocumentActionHandler::createNewLayerMenu(QWidget *parent) const
     newLayerMenu->setIcon(QIcon(QLatin1String(":/images/16x16/document-new.png")));
     Utils::setThemeIcon(newLayerMenu, "document-new");
 
+	newLayerMenu->addAction(actionAddTileLayerForGms());
     newLayerMenu->addAction(actionAddTileLayer());
     newLayerMenu->addAction(actionAddObjectGroup());
     newLayerMenu->addAction(actionAddImageLayer());
@@ -478,6 +485,21 @@ void MapDocumentActionHandler::autocrop()
 {
     if (mMapDocument)
         mMapDocument->autocropMap();
+}
+
+void MapDocumentActionHandler::addTileLayerGmx()
+{
+
+	if (mMapDocument)
+	{
+		int layerDepth = 1000000;
+		bool accepted = false;
+		auto newDepth = QInputDialog::getInt(nullptr, tr("Layer depth"), tr("Layer depth"), layerDepth, -2000000000, 2000000000, 1, &accepted);
+		if(accepted)
+			layerDepth = newDepth;
+		auto layer = mMapDocument->addLayer(Layer::TileLayerType, QString::number(layerDepth)+QStringLiteral("_%1"));
+		layer->setProperty(QStringLiteral("depth"), layerDepth);
+	}
 }
 
 void MapDocumentActionHandler::addTileLayer()
