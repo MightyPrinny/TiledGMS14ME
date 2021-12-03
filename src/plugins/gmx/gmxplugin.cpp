@@ -310,6 +310,7 @@ static SharedTileset tilesetWithName(const QString &bgName, Map *map, QDir &imag
 
 	if(!tst.isNull())
 	{
+		map->addTileset(tst);
 		return tst;
 	}
 
@@ -322,6 +323,7 @@ static SharedTileset tilesetWithName(const QString &bgName, Map *map, QDir &imag
 
 		newTileset->setFileName(imgPath);
 		map->addTileset(newTileset);
+
 		return newTileset;
     }
 
