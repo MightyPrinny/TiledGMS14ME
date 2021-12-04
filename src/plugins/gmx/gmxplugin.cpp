@@ -621,7 +621,7 @@ Tiled::Map *GmxPlugin::read(const QString &fileName, QSettings *appSettings)
 			{
 				int yInTileset = (yo/tileHeight);
 				if(yInTileset + vtiles -1 >= tileset->rowCount()){
-					vtiles += tileset->columnCount() - 1 - (yInTileset + vtiles-1);
+					vtiles += tileset->rowCount() - 1 - (yInTileset + vtiles-1);
 					qDebug()<<"trimmed tile vertically";
 				}
 			}
