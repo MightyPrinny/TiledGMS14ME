@@ -1413,13 +1413,6 @@ bool GmxPlugin::write(const Map *map, const QString &fileName)
 
 								int checkX = 1;
 								int checkY = 0;
-								bool rowJump = false;
-								if(checkX > maxCheckXOff || (checkX + x) >= layerWidth)
-								{
-									checkX = 0;
-									++checkY;
-									rowJump = true;
-								}
 
 								bool prevAccepted = true;
 
@@ -1442,7 +1435,7 @@ bool GmxPlugin::write(const Map *map, const QString &fileName)
 												&& !sCell.flippedVertically() && !sCell.flippedHorizontally())
 												{
 													int sTileXInGrid = sTile->id() % tstColumns;
-													int sTileYInGrid = (int)(sTile->id() / tstColumns);
+													int sTileYInGrid = (sTile->id() / tstColumns);
 
 													if( (sTileXInGrid == (xInTilesetGrid + checkX))
 													&& (sTileYInGrid == (yInTilesetGrid + checkY)))
@@ -1462,14 +1455,14 @@ bool GmxPlugin::write(const Map *map, const QString &fileName)
 												}
 											}
 										}
-										rowJump = false;
+
 										if(!acceptedTile)
 										{
 											if(checkX > 0)
 												maxCheckXOff = checkX-1;
 											else
 												maxCheckXOff = 0;
-											if(!prevAccepted)
+											if(!prevAccepted || (maxCheckXOff == 0))
 											{
 												maxCheckXOff = -1;
 												maxCheckYOff = -1;
@@ -1482,11 +1475,9 @@ bool GmxPlugin::write(const Map *map, const QString &fileName)
 										{
 											prevAccepted = true;
 										}
-
 									}
 
 									checkX = 0;
-									rowJump = true;
 								}
 
 								if(combineArea > 1)
