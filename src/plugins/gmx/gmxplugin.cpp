@@ -1422,32 +1422,36 @@ bool GmxPlugin::write(const Map *map, const QString &fileName)
 
 									for(; checkX <= maxCheckXOff && (checkX	+ x) < layerWidth; ++checkX)
 									{
+
 										const Cell &sCell = tileLayer->cellAt(x + checkX,y + checkY);
 										bool acceptedTile = false;
 										if(const Tile *sTile = sCell.tile())
 										{
-											const Tileset *sTileset = sTile->tileset();
-
-											if(sTileset == tileset
-											&& (sTile->width() == map->tileWidth()) && (sTile->height() == map->tileHeight())
-											&& !sCell.flippedVertically() && !sCell.flippedHorizontally())
+											if(processedTiles.count((checkX + x) + (checkY+y)*layerWidth) == 0)
 											{
-												int sTileXInGrid = sTile->id() % tstColumns;
-												int sTileYInGrid = (int)(sTile->id() / tstColumns);
+												const Tileset *sTileset = sTile->tileset();
 
-												if( (sTileXInGrid == (xInTilesetGrid + checkX))
-												&& (sTileYInGrid == (yInTilesetGrid + checkY)))
+												if(sTileset == tileset
+												&& (sTile->width() == map->tileWidth()) && (sTile->height() == map->tileHeight())
+												&& !sCell.flippedVertically() && !sCell.flippedHorizontally())
 												{
-													currentArea = ((checkX+1)*(checkY+1));
+													int sTileXInGrid = sTile->id() % tstColumns;
+													int sTileYInGrid = (int)(sTile->id() / tstColumns);
 
-													acceptedTile = true;
-													if(currentArea > combineArea)
+													if( (sTileXInGrid == (xInTilesetGrid + checkX))
+													&& (sTileYInGrid == (yInTilesetGrid + checkY)))
 													{
-														combineArea = currentArea;
-														combineXRight = checkX;
-														combineYBottom = checkY;
+														currentArea = ((checkX+1)*(checkY+1));
+
+														acceptedTile = true;
+														if(currentArea > combineArea)
+														{
+															combineArea = currentArea;
+															combineXRight = checkX;
+															combineYBottom = checkY;
 
 
+														}
 													}
 												}
 											}
