@@ -383,6 +383,7 @@ Tiled::Map *GmxPlugin::read(const QString &fileName, QSettings *appSettings)
 	if(appSettings != nullptr)
 	{
 		sDialog->setDefaultPaths(appSettings);
+
 	}
 
     sDialog->exec();
@@ -434,7 +435,12 @@ Tiled::Map *GmxPlugin::read(const QString &fileName, QSettings *appSettings)
     newMap->setQuadHeight(settings.quadHeigth);
 	newMap->setProperty("enableViews", enableViews);
 	newMap->setProperty("speed", roomSpeed);
-	newMap->setProperty("combineTilesOnExport", true);
+	bool defaultCombineTiles = false;
+	if(appSettings != nullptr)
+	{
+		defaultCombineTiles = appSettings->value(QStringLiteral("Interface/DefaultCombineTiles"), false).toBool();
+	}
+	newMap->setProperty("combineTilesOnExport", defaultCombineTiles);
 
     if(useBgColor)
     {

@@ -141,6 +141,8 @@ PreferencesDialog::PreferencesDialog(QWidget *parent)
 
     connect(pluginListModel, &PluginListModel::setPluginEnabled,
             preferences, &Preferences::setPluginEnabled);
+
+	connect(mUi->defaultCombineTilesCheckBox, &QCheckBox::toggled, preferences, &Preferences::setDefaultCombineTiles);
 }
 
 PreferencesDialog::~PreferencesDialog()
@@ -189,6 +191,7 @@ void PreferencesDialog::fromPreferences()
     mUi->quadColor->setColor(prefs->quadColor());
     mUi->gridFine->setValue(prefs->gridFine());
     mUi->objectLineWidth->setValue(prefs->objectLineWidth());
+	mUi->defaultCombineTilesCheckBox->setChecked(prefs->defaultCombineTiles());
 
     int styleComboIndex = mUi->styleCombo->findData(prefs->applicationStyle());
     if (styleComboIndex == -1)

@@ -85,6 +85,7 @@ Preferences::Preferences()
     mShowTileObjectOutlines = boolValue("ShowTileObjectOutlines");
     mShowTileAnimations = boolValue("ShowTileAnimations", true);
     mSnapToGrid = boolValue("SnapToGrid");
+	mDefaultCombineTiles = boolValue("DefaultCombineTiles", false);
     mSnapToFineGrid = boolValue("SnapToFineGrid");
     mSnapToPixels = boolValue("SnapToPixels");
     mGridColor = colorValue("GridColor", Qt::black);
@@ -385,7 +386,14 @@ void Preferences::setGridColor(QColor gridColor)
 
     mGridColor = gridColor;
     mSettings->setValue(QLatin1String("Interface/GridColor"), mGridColor.name());
-    emit gridColorChanged(mGridColor);
+	emit gridColorChanged(mGridColor);
+}
+
+void Preferences::setDefaultCombineTiles(bool value)
+{
+	mDefaultCombineTiles = value;
+	mSettings->setValue(QStringLiteral("Interface/DefaultCombineTiles"), mDefaultCombineTiles);
+	emit defaultCombineTilesChanged(value);
 }
 
 void Preferences::setQuadColor(QColor quadColor)

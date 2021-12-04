@@ -52,6 +52,7 @@ public:
     bool snapToGrid() const { return mSnapToGrid; }
     bool snapToFineGrid() const { return mSnapToFineGrid; }
     bool snapToPixels() const { return mSnapToPixels; }
+	bool defaultCombineTiles() const {return mDefaultCombineTiles;}
     QColor gridColor() const { return mGridColor; }
     QColor quadColor() const { return mQuadColor; }
     int gridFine() const { return mGridFine; }
@@ -191,6 +192,7 @@ public slots:
     void setSnapToFineGrid(bool snapToFineGrid);
     void setSnapToPixels(bool snapToPixels);
     void setGridColor(QColor gridColor);
+	void setDefaultCombineTiles(bool value);
     void setQuadColor(QColor quadColor);
     void setGridFine(int gridFine);
     void setSnapGrid();
@@ -214,6 +216,7 @@ signals:
     void snapToGridChanged(bool snapToGrid);
     void snapToFineGridChanged(bool snapToFineGrid);
     void snapToPixelsChanged(bool snapToPixels);
+	void defaultCombineTilesChanged(bool value);
     void gridColorChanged(QColor gridColor);
     void quadColorChanged(QColor gridColor);
     void gridFineChanged(int gridFine);
@@ -268,6 +271,7 @@ private:
     bool mSnapToFineGrid;
     bool mSnapToPixels;
 	bool mAutoFlipObjectSetter;
+	bool mDefaultCombineTiles;
     int mSnapGridHeigth;
     int mSnapGridWidth;
     QColor mGridColor;
