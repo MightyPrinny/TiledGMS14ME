@@ -230,8 +230,8 @@ void OrthogonalRenderer::drawGrid(QPainter *painter, const QRectF &rect,
     if (!map()->infinite()) {
         startX = qMax(0, startX);
         startY = qMax(0, startY);
-        endX = qMin(endX, map()->width() * tileWidth + 1);
-        endY = qMin(endY, map()->height() * tileHeight + 1);
+		endX = qMin(endX, map()->width() * map()->tileWidth() + 1);
+		endY = qMin(endY, map()->height() * map()->tileHeight() + 1);
     }
 
     QPen gridPen = makeGridPen(painter->device(), gridColor);
