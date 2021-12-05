@@ -30,7 +30,7 @@ ui_*.h
 Makefile*
 *build-*
 *.qm
-*.prl
+*.pri
 
 # Qt unit tests
 target_wrapper.*
