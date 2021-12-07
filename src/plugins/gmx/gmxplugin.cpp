@@ -333,16 +333,17 @@ static SharedTileset tilesetWithName(const QString &bgName, Map *map, QDir &imag
 
 static bool lesThanLayer(Layer *lay1, Layer *lay2)
 {
-    int depth1 = 9999999;
+	int depth1 = 99999990;
     int depth2 = depth1;
 
-    QVariant aux = lay1->inheritedProperty(QString("depth"));
+	QVariant aux = lay1->property(QStringLiteral("depth"));
     if(aux.isValid())
         depth1=aux.toInt();
-    aux = lay2->inheritedProperty(QString("depth"));
+	aux = lay2->property(QStringLiteral("depth"));
     if(aux.isValid())
         depth2 = aux.toInt();
-    return depth1>depth2;
+
+	return depth1>depth2;
 }
 
 void GmxPlugin::writeAttribute(const QString &qualifiedName, QString &value, QIODevice* d, QTextCodec* codec)
@@ -592,10 +593,7 @@ Tiled::Map *GmxPlugin::read(const QString &fileName, QSettings *appSettings)
             int yo = QString(tile->first_attribute("yo")->value()).toInt();
             int scaleX = QString(tile->first_attribute("scaleX")->value()).toInt();
             int scaleY = QString(tile->first_attribute("scaleY")->value()).toInt();
-            if(scaleX==-1)
-                x-=tileWidth;
-            if(scaleY==-1)
-                y-=tileHeight;
+
             int xoff = x%tileWidth;
             int yoff = y%tileHeight;
 			x = (x/tileWidth)*tileWidth;
@@ -615,6 +613,24 @@ Tiled::Map *GmxPlugin::read(const QString &fileName, QSettings *appSettings)
                 tile = tile->next_sibling();
                 continue;
             }
+
+			if(scaleX > 0)
+			{
+				scaleX /= abs(scaleX);
+			}
+			if(scaleY > 0)
+			{
+				scaleX /= abs(scaleX);
+			}
+
+			if(scaleX==-1)
+			{
+				x-=tileWidth;
+			}
+			if(scaleY==-1)
+			{
+				y-=tileHeight;
+			}
 			if(htiles > 1)
 			{
 				int xInTileset = (xo/tileWidth);
@@ -649,12 +665,13 @@ Tiled::Map *GmxPlugin::read(const QString &fileName, QSettings *appSettings)
 					}
 					else
 					{
+
 						ncell.setTile(tileset.get(),tileID);
 						if(scaleX==-1)
 							ncell.setFlippedHorizontally(true);
 						if(scaleY==-1)
 							ncell.setFlippedVertically(true);
-						layer->setCell(x/tileWidth+ht, y/tileHeight+vt,ncell);
+						layer->setCell(x/tileWidth+ht*scaleX, y/tileHeight+vt*scaleY,ncell);
 					}
                 }
             }
@@ -822,7 +839,7 @@ Tiled::Map *GmxPlugin::read(const QString &fileName, QSettings *appSettings)
     QList<Layer*> *mLayers = newMap->layersNoConst();
     if(!mLayers->isEmpty())
     {
-        std::sort(mLayers->begin(),mLayers->end(),lesThanLayer);
+		std::stable_sort(mLayers->begin(),mLayers->end(),lesThanLayer);
     }
 
 	doc.clear();
