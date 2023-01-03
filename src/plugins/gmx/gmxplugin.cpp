@@ -67,6 +67,7 @@ template <typename T>
 static T optionalProperty(const Object *object, const QString &name, const T &def)
 {
     QVariant var = object->inheritedProperty(name);
+
     return var.isValid() ? var.value<T>() : def;
 }
 

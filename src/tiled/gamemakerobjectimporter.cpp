@@ -607,6 +607,7 @@ bool GameMakerObjectImporter::generateTemplates(QString dir, QString outputDirPa
 				typesWriter.writeAttribute(QStringLiteral("name"),QStringLiteral("colour"));
 				typesWriter.writeAttribute(QStringLiteral("type"),QStringLiteral("color"));
 				typesWriter.writeAttribute(QStringLiteral("value"),QStringLiteral("#ffffffff"));
+                typesWriter.writeAttribute(QStringLiteral("default"),QStringLiteral("#ffffffff"));
 			typesWriter.writeEndElement();
 
 			typesWriter.writeStartElement(QStringLiteral("property"));
