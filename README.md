@@ -12,12 +12,13 @@ Quick start
 - Click ok and wait a bit, for some reason this takes quite a bit longer on Windows than on GNU/Linux, but it's still quite fast compared
 to how long GMS1.4 takes to load and save a project.
 
+- Go to: View->Object Types Editor and then in that window File->Choose Object Types File and select the types.xml file generated in the with the templates
+
 - Open a room, an import dialog will popup, here you can adjust the tile and quad size then click OK
 
-- Now you can edit the room and insert objects using the TemplateDock, which is usually on the left side.
+- Now you can edit the room and insert objects using the TemplateDock, which is usually on the left side (To enable it go to: View->Views and toolbars make sure the checkbox "Templates" is checked).
 
 - When moving objects with grid snapping turned on you can hold the control key to snap using half of the grid size.
-
 
 Remarks
 
