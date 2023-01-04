@@ -38,8 +38,7 @@ Remarks
 
 - Rooms are imported assuming that all tiles use tilesets with the same tile size.
 
-- Tiles are combined to be as big as they can be to save space in the room file and als oto make  objObjectSetter  work in MegamixEngine. You can disable this by setting the map's custom property "combineTilesOnExport" to false.
-
+- Tiles can be combined to be as big as they can be to save space in the room file and also to make objObjectSetter  work in MegamixEngine by default(otherwise it has to be flipped vertically to use it in the alternative mode). You can enable this by setting the map's custom property "combineTilesOnExport" to true.
 
 Features
 
