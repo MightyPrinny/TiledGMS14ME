@@ -82,8 +82,7 @@ PreferencesDialog::PreferencesDialog(QWidget *parent)
 
     QString poth = preferences->executablePath();
     mUi->exePath->setText(poth);
-	poth = preferences->gmProjectPath();
-    mUi->gmProjectDir->setText(poth);
+
     poth = preferences->gmProjectFilePath();
     mUi->gmProjectFile->setText(poth);
 	poth = preferences->genTemplatesOutDir();
@@ -125,11 +124,6 @@ PreferencesDialog::PreferencesDialog(QWidget *parent)
 	connect(preferences, &Preferences::genTemplatesOutDirChanged,
 			this, &PreferencesDialog::genTemplatesDirChanged);
 
-    //Project Dir (deprecated)
-	connect(mUi->gmProjectBrowse, &QToolButton::clicked,
-			preferences, &Preferences::browseGMProjectPath);
-	connect(preferences, &Preferences::gmProjectPathChanged,
-			this, &PreferencesDialog::gmProjectPathChanged);
 
     //Project file
     connect(mUi->gmProjectFileBrowse, &QToolButton::clicked,
@@ -270,10 +264,6 @@ void PreferencesDialog::executablePathChanged(QString path)
     mUi->exePath->setText(path);
 }
 
-void PreferencesDialog::gmProjectPathChanged(QString path)
-{
-    mUi->gmProjectDir->setText(path);
-}
 
 void PreferencesDialog::gmProjectFilePathChanged(QString path)
 {

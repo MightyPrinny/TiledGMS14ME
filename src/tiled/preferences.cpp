@@ -76,7 +76,7 @@ Preferences::Preferences()
     // Retrieve interface settings
     mSettings->beginGroup(QLatin1String("Interface"));
     mExecutablePath = stringValue("ExecutablePath");
-	mGMProjectPath = stringValue("GMProjectPath");
+
     mGMProjectFilePath = stringValue("GMProjectFilePath");
 	mGenTemplatesOutDir = stringValue("GenTemplatesOutDir");
 	mAutoFlipObjectSetter = boolValue("AutoFlipObjectSetter", false);
@@ -330,17 +330,7 @@ void Preferences::browseExecutablePath()
     return;
 }
 
-void Preferences::browseGMProjectPath()
-{
-	mGMProjectPath = QFileDialog::getExistingDirectory(nullptr, QLatin1String("Open a game maker project's directory"),
-													 QLatin1String(""),
-													 QFileDialog::ShowDirsOnly
-													 | QFileDialog::DontUseCustomDirectoryIcons);
 
-	emit gmProjectPathChanged(mGMProjectPath);
-    mSettings->setValue(QStringLiteral("Interface/GMProjectPath"), mGMProjectPath);
-    return;
-}
 
 void Preferences::browseGMProjectFile()
 {
