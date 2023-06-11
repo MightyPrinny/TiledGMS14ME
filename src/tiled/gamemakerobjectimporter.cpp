@@ -153,26 +153,47 @@ bool GameMakerObjectImporter::showGenerateTemplatesDialog(QWidget* prt)
 	return rv;
 }
 
-bool GameMakerObjectImporter::generateTemplates(QString dir, QString outputDirPath, bool deleteOld, bool updateTypesInEditor)
+bool GameMakerObjectImporter::generateTemplates(QString projectFilePath, QString outputDirPath, bool deleteOld, bool updateTypesInEditor)
 {
-	if(dir.isEmpty() || outputDirPath.isEmpty())
+    if(projectFilePath.isEmpty() || outputDirPath.isEmpty())
     {
-		QMessageBox::warning(nullptr ,QStringLiteral("A path was empty"), QStringLiteral("Can't generate templates with an empty path"));
+        QMessageBox::warning(nullptr ,QStringLiteral("A path was empty"),
+                             QStringLiteral("Can't generate templates with an empty project file path"));
 		return false;
     }
 
+
+
 	if(Tiled::Internal::DocumentManager::instance()->documents().count() > 0)
 	{
-		QMessageBox::warning(nullptr ,QStringLiteral("Can't generate templates"), QStringLiteral("Close all documents before generating templates"));
+        QMessageBox::warning(nullptr ,QStringLiteral("Can't generate templates"),
+                             QStringLiteral("Close all documents before generating templates"));
 		return false;
 	}
 
     using namespace rapidxml;
     using namespace std;
 
+
+    if (!QFile::exists(projectFilePath)) {
+        QMessageBox::warning(nullptr ,QStringLiteral("Can't generate templates"),
+                             QStringLiteral("The project file doesn't exist"));
+        return false;
+    }
+
+    QString projectDir;
+    {
+        QDir tempProjDir=QDir(projectFilePath);
+        tempProjDir.cdUp();
+        projectDir = tempProjDir.path();
+        qDebug() << "Project Dir: " << projectDir;
+
+
+    }
+
 	bool valid = true;
     //Directories
-    QDir rootDir =  QDir(dir);
+    QDir rootDir =  QDir(projectDir);
 	valid &= rootDir.cd(QStringLiteral("objects"));
     QDir objectDir =  QDir(rootDir.path());
 	rootDir.cdUp();
@@ -244,28 +265,28 @@ bool GameMakerObjectImporter::generateTemplates(QString dir, QString outputDirPa
 	QCoreApplication::processEvents();
 	//progress->repaint();
 
-	QString projectFilePath = QStringLiteral("");
+    //QString projectFilePath = QStringLiteral("");
     unordered_map<string,string> *objectFolderMap = new unordered_map<string,string>();
     unordered_map<string,int> *imageIDMap = new unordered_map<string,int>();
-    bool useObjectFolders = false;
+    bool useObjectFolders = true;
 
-    {
-        QFileInfoList rootInfo = rootDir.entryInfoList();
-        int size = rootInfo.size();
-        for(int a = 0; a < size; ++a)
-        {
-            QFileInfo finfo = rootInfo.at(a);
-            if(finfo.isFile())
-            {
-				if(finfo.fileName().endsWith(QStringLiteral(".project.gmx")))
-                {
-                    projectFilePath = finfo.filePath();
-                    useObjectFolders = true;
-                    break;
-                }
-            }
-        }
-    }
+//    {
+//        QFileInfoList rootInfo = rootDir.entryInfoList();
+//        int size = rootInfo.size();
+//        for(int a = 0; a < size; ++a)
+//        {
+//            QFileInfo finfo = rootInfo.at(a);
+//            if(finfo.isFile())
+//            {
+//				if(finfo.fileName().endsWith(QStringLiteral(".project.gmx")))
+//                {
+//                    projectFilePath = finfo.filePath();
+//                    useObjectFolders = true;
+//                    break;
+//                }
+//            }
+//        }
+//    }
     if(useObjectFolders)
     {
         mapObjectsToFolders(projectFilePath,objectFolderMap);

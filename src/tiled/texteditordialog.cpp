@@ -37,6 +37,9 @@ TextEditorDialog::TextEditorDialog(QWidget *parent)
 #endif
 
     Utils::restoreGeometry(this);
+
+    mUi->plainTextEdit->setTabStopDistance(
+        QFontMetricsF(mUi->plainTextEdit->font()).horizontalAdvance(QLatin1String(" ")) * 3);
 }
 
 TextEditorDialog::~TextEditorDialog()

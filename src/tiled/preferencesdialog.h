@@ -50,6 +50,7 @@ private slots:
     void languageSelected(int index);
     void executablePathChanged(QString path);
 	void gmProjectPathChanged(QString path);
+    void gmProjectFilePathChanged(QString path);
 	void genTemplatesDirChanged(QString path);
 
 private:

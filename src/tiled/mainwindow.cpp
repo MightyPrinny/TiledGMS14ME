@@ -1033,7 +1033,8 @@ void MainWindow::generateTemplates()
 {
 	if(Tiled::Internal::DocumentManager::instance()->documents().count() > 0)
 	{
-		QMessageBox::warning(nullptr ,QStringLiteral("Can't generate templates"), QStringLiteral("Close all documents before generating templates"));
+        QMessageBox::warning(nullptr ,QStringLiteral("Can't generate templates"),
+                             QStringLiteral("Close all documents before generating templates"));
 		return;
 	}
     std::unique_ptr<GameMakerObjectImporter> helper(new GameMakerObjectImporter(this));

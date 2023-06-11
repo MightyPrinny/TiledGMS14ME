@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>466</width>
-    <height>717</height>
+    <height>731</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -198,55 +198,6 @@
           <string>Megamix Engine</string>
          </property>
          <layout class="QGridLayout" name="gridLayout_5">
-          <item row="2" column="2">
-           <widget class="QToolButton" name="genTemplatesOutDirBrowse">
-            <property name="text">
-             <string>...</string>
-            </property>
-           </widget>
-          </item>
-          <item row="1" column="1">
-           <widget class="QLineEdit" name="gmProjectDir">
-            <property name="enabled">
-             <bool>false</bool>
-            </property>
-           </widget>
-          </item>
-          <item row="2" column="0">
-           <widget class="QLabel" name="genTemplatesOutDirLabel">
-            <property name="text">
-             <string>TemplatesOutDir</string>
-            </property>
-           </widget>
-          </item>
-          <item row="1" column="0">
-           <widget class="QLabel" name="gmProjectPathLabel">
-            <property name="text">
-             <string>GMProjectDir</string>
-            </property>
-           </widget>
-          </item>
-          <item row="0" column="2">
-           <widget class="QToolButton" name="exeBrowse">
-            <property name="text">
-             <string>...</string>
-            </property>
-           </widget>
-          </item>
-          <item row="1" column="2">
-           <widget class="QToolButton" name="gmProjectBrowse">
-            <property name="text">
-             <string>...</string>
-            </property>
-           </widget>
-          </item>
-          <item row="2" column="1">
-           <widget class="QLineEdit" name="genTemplatesOutDir">
-            <property name="enabled">
-             <bool>false</bool>
-            </property>
-           </widget>
-          </item>
           <item row="0" column="0">
            <widget class="QLabel" name="exeLabel">
             <property name="text">
@@ -258,6 +209,76 @@
            <widget class="QLineEdit" name="exePath">
             <property name="enabled">
              <bool>false</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="2">
+           <widget class="QToolButton" name="exeBrowse">
+            <property name="text">
+             <string>...</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="gmProjectPathLabel">
+            <property name="text">
+             <string>GMProjectDir</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QLineEdit" name="gmProjectDir">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="2">
+           <widget class="QToolButton" name="gmProjectBrowse">
+            <property name="text">
+             <string>...</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="0">
+           <widget class="QLabel" name="gmProjectPathLabel">
+            <property name="text">
+             <string>GMProjectFile</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1">
+           <widget class="QLineEdit" name="gmProjectFile">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="2">
+           <widget class="QToolButton" name="gmProjectFileBrowse">
+            <property name="text">
+             <string>...</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="0">
+           <widget class="QLabel" name="genTemplatesOutDirLabel">
+            <property name="text">
+             <string>TemplatesOutDir</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="1">
+           <widget class="QLineEdit" name="genTemplatesOutDir">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="2">
+           <widget class="QToolButton" name="genTemplatesOutDirBrowse">
+            <property name="text">
+             <string>...</string>
             </property>
            </widget>
           </item>

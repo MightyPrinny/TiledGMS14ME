@@ -77,6 +77,7 @@ Preferences::Preferences()
     mSettings->beginGroup(QLatin1String("Interface"));
     mExecutablePath = stringValue("ExecutablePath");
 	mGMProjectPath = stringValue("GMProjectPath");
+    mGMProjectFilePath = stringValue("GMProjectFilePath");
 	mGenTemplatesOutDir = stringValue("GenTemplatesOutDir");
 	mAutoFlipObjectSetter = boolValue("AutoFlipObjectSetter", false);
 
@@ -337,8 +338,21 @@ void Preferences::browseGMProjectPath()
 													 | QFileDialog::DontUseCustomDirectoryIcons);
 
 	emit gmProjectPathChanged(mGMProjectPath);
-	mSettings->setValue(QStringLiteral("Interface/GMProjectPath"), mGMProjectPath);
-	return;
+    mSettings->setValue(QStringLiteral("Interface/GMProjectPath"), mGMProjectPath);
+    return;
+}
+
+void Preferences::browseGMProjectFile()
+{
+    mGMProjectFilePath = QFileDialog::getOpenFileName(nullptr,
+                                                      QLatin1String("Open a game maker project file"),
+                                                      QLatin1String(""),
+                                                      QLatin1String("Game Maker Project (*.project.gmx)"));
+
+
+    mSettings->setValue(QStringLiteral("Interface/GMProjectFilePath"), mGMProjectFilePath);
+    emit gmProjectFilePathChanged(mGMProjectFilePath);
+    return;
 }
 
 void Preferences::browseGenTemplateOutDir()
@@ -347,8 +361,9 @@ void Preferences::browseGenTemplateOutDir()
 													 QLatin1String(""),
 													 QFileDialog::ShowDirsOnly
 													 | QFileDialog::DontUseCustomDirectoryIcons);
-	emit genTemplatesOutDirChanged(mGenTemplatesOutDir);
+
 	mSettings->setValue(QStringLiteral("Interface/GenTemplatesOutDir"), mGenTemplatesOutDir);
+    emit genTemplatesOutDirChanged(mGenTemplatesOutDir);
 	return;
 }
 

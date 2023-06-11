@@ -61,6 +61,7 @@ public:
 
 	QString executablePath(){return mExecutablePath;}
 	QString gmProjectPath(){return mGMProjectPath;}
+    QString gmProjectFilePath(){return mGMProjectFilePath;}
 	QString genTemplatesOutDir(){return mGenTemplatesOutDir;}
 	bool autoFlipObjectSetter(){return mAutoFlipObjectSetter;}
 
@@ -182,6 +183,7 @@ public:
 public slots:
     void browseExecutablePath();
 	void browseGMProjectPath();
+    void browseGMProjectFile();
 	void browseGenTemplateOutDir();
 	void setAutoFlipObjectSetter(bool value);
     void setShowGrid(bool showGrid);
@@ -228,6 +230,7 @@ signals:
     void labelForHoveredObjectChanged(bool enabled);
     void executablePathChanged(QString path);
 	void gmProjectPathChanged(QString path);
+    void gmProjectFilePathChanged(QString path);
 	void genTemplatesOutDirChanged(QString path);
 
 
@@ -300,6 +303,7 @@ private:
 
     QString mExecutablePath;
 	QString mGMProjectPath;
+    QString mGMProjectFilePath;
 	QString mGenTemplatesOutDir;
 
     QString mMapsDirectory;

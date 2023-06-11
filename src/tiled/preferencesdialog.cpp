@@ -83,7 +83,9 @@ PreferencesDialog::PreferencesDialog(QWidget *parent)
     QString poth = preferences->executablePath();
     mUi->exePath->setText(poth);
 	poth = preferences->gmProjectPath();
-	mUi->gmProjectDir->setText(poth);
+    mUi->gmProjectDir->setText(poth);
+    poth = preferences->gmProjectFilePath();
+    mUi->gmProjectFile->setText(poth);
 	poth = preferences->genTemplatesOutDir();
 	mUi->genTemplatesOutDir->setText(poth);
 
@@ -117,15 +119,23 @@ PreferencesDialog::PreferencesDialog(QWidget *parent)
 	connect(preferences, &Preferences::executablePathChanged,
             this, &PreferencesDialog::executablePathChanged);
 
+
 	connect(mUi->genTemplatesOutDirBrowse, &QToolButton::clicked,
 			preferences, &Preferences::browseGenTemplateOutDir);
 	connect(preferences, &Preferences::genTemplatesOutDirChanged,
 			this, &PreferencesDialog::genTemplatesDirChanged);
 
+    //Project Dir (deprecated)
 	connect(mUi->gmProjectBrowse, &QToolButton::clicked,
 			preferences, &Preferences::browseGMProjectPath);
 	connect(preferences, &Preferences::gmProjectPathChanged,
 			this, &PreferencesDialog::gmProjectPathChanged);
+
+    //Project file
+    connect(mUi->gmProjectFileBrowse, &QToolButton::clicked,
+            preferences, &Preferences::browseGMProjectFile);
+    connect(preferences, &Preferences::gmProjectFilePathChanged,
+            this, &PreferencesDialog::gmProjectFilePathChanged);
 
     connect(mUi->styleCombo, static_cast<void(QComboBox::*)(int)>(&QComboBox::currentIndexChanged),
             this, &PreferencesDialog::styleComboChanged);
@@ -262,7 +272,12 @@ void PreferencesDialog::executablePathChanged(QString path)
 
 void PreferencesDialog::gmProjectPathChanged(QString path)
 {
-	mUi->gmProjectDir->setText(path);
+    mUi->gmProjectDir->setText(path);
+}
+
+void PreferencesDialog::gmProjectFilePathChanged(QString path)
+{
+     mUi->gmProjectFile->setText(path);
 }
 
 void PreferencesDialog::genTemplatesDirChanged(QString path)

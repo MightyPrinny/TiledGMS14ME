@@ -1,5 +1,7 @@
 This is a modified version of Tiled 1.1.5 made to edit Game Maker Studio 1.4 rooms, with some aditional features for MegamixEngine.
 
+3rd Party Guide
+- Tutorial by Yoshiatom: https://drive.google.com/file/d/1fvOru4c2LPoKQd_kgx55T1lq3rhATl4H/edit
 
 Quick start
 
