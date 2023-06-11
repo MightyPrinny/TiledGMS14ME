@@ -40,7 +40,7 @@ ImporterSettings RoomImporterDialog::getSettings()
 
 void RoomImporterDialog::setDefaultPaths(QSettings *appSettings)
 {
-	QVariant val = appSettings->value("Interface/GMProjectPath");
+    QVariant val = appSettings->value("Interface/GMProjectFilePath");
 	QSize tileSize = appSettings->value(QStringLiteral("GMSMESizes/lastUsedMapTilesize"), QSize(16,16)).toSize();
 	mUi->tileWidth->setValue(tileSize.width());
 	mUi->tileHeight->setValue(tileSize.height());
@@ -51,6 +51,7 @@ void RoomImporterDialog::setDefaultPaths(QSettings *appSettings)
 	{
 		QString str = val.toString();
 		QDir projDir(str);
+        projDir.cdUp();
 		projDir.cd("background/images");
 		mUi->imagesLabel->setText(projDir.path());
 	}
